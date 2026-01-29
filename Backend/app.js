@@ -2,32 +2,30 @@ import express from 'express';
 import cors from "cors";
 import cookieparser from "cookie-parser";
 import userRouter from "./Routes/user.route.js";
-import dotenv from "dotenv";
-
-dotenv.config();
 
 const app = express();
 
 app.use(cors({
-    origin: process.env.CORS_ORIGIN,
-    credentials:true
-}))
+    origin: process.env.CORS_ORIGIN || "http://localhost:5173",
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    exposedHeaders: ["Set-Cookie"]
+}));
 
-// when data arrive in server from the frontend side so that data send by the url, json form,etc.. , if out of limit data send to the server so server can be crashed so we can add limit 
+// Parse incoming JSON payloads with a safe size limit
+app.use(express.json({ limit: "16mb" }));
 
-app.use(express.json({limit:"16mb"}))
-app.use(express.urlencoded())
+// Parse URL-encoded payloads (e.g. form submissions)
+app.use(express.urlencoded({ extended: true, limit: "16mb" }));
 
-// when any document like images,pdf,etc.. upload in server and if document stored in server side in public folder so we can do
+// Serve static files (e.g. uploaded images, documents) from the public folder
+app.use(express.static("public"));
 
-app.use(express.static("public"))
+// Allow server to read and modify cookies stored in the user's browser
+app.use(cookieparser());
 
-// cookieparser - server can access the cookies that stored in user browser and also server can do the crudoperation on the cookie
-
-app.use(cookieparser())
-
-
+// User-related routes
 app.use("/api/v1/user", userRouter);
-
 
 export { app };
