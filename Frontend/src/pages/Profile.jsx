@@ -7,6 +7,15 @@ import Navbar from "../components/Navbar";
 import { setLoading, setUser } from "../redux/authSlice";
 
 const API_BASE = "http://localhost:3000/api/v1/user";
+const PENDING_IMAGE_KEY = "eventhub_pending_profile_image";
+
+const fileToBase64 = (file) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 
 function Profile() {
   const dispatch = useDispatch();
@@ -129,6 +138,13 @@ function Profile() {
 
     if (!user?._id) return;
 
+    try {
+      const base64 = await fileToBase64(file);
+      localStorage.setItem(PENDING_IMAGE_KEY, base64);
+    } catch (err) {
+      console.warn("Could not store image in localStorage", err);
+    }
+
     const form = new FormData();
     form.append("profileImage", file);
     form.append("userId", user._id);
@@ -141,6 +157,7 @@ function Profile() {
       });
 
       if (res.data.success) {
+        localStorage.removeItem(PENDING_IMAGE_KEY);
         dispatch(setUser(res.data.user));
         toast.success("Profile photo updated");
       } else {

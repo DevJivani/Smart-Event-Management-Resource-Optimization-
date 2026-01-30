@@ -5,6 +5,16 @@ import { toast } from "react-hot-toast";
 import { setLoading, setUser } from "../redux/authSlice";
 import { useNavigate, Link } from "react-router-dom";
 
+const PENDING_IMAGE_KEY = "eventhub_pending_profile_image";
+
+const fileToBase64 = (file) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
 const Register = () => {
   const dispatch = useDispatch();
   const { loading } = useSelector(state => state.auth);
@@ -25,12 +35,18 @@ const Register = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleImageChange = (e) => {
+  const handleImageChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setProfileImage(file);
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
+    try {
+      const base64 = await fileToBase64(file);
+      localStorage.setItem(PENDING_IMAGE_KEY, base64);
+    } catch (err) {
+      console.warn("Could not store image in localStorage", err);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -57,6 +73,7 @@ const Register = () => {
       );
 
       if (res.data.success) {
+        localStorage.removeItem(PENDING_IMAGE_KEY);
         dispatch(setUser(res.data.createUser));
         toast.success("Registration successful!");
         navigate('/login');
@@ -177,7 +194,7 @@ const Register = () => {
                   type="tel"
                   name="phoneNumber"
                   value={formData.phoneNumber}
-                  placeholder="+1 (555) 000-0000"
+                  placeholder="+91 (555) 000-0000"
                   onChange={handleChange}
                   className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm"
                   required
@@ -291,68 +308,13 @@ const Register = () => {
         </div>
       </div>
 
-      {/* Right Side - Decorative Panel */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 relative overflow-hidden">
-        {/* Animated Background Elements */}
-        <div className="absolute inset-0">
-          <div className="absolute top-20 right-20 w-72 h-72 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-20 left-20 w-96 h-96 bg-emerald-400/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
-          <div className="absolute top-1/2 right-1/3 w-64 h-64 bg-teal-400/10 rounded-full blur-2xl animate-pulse delay-500"></div>
-        </div>
-        
-        {/* Content */}
-        <div className="relative z-10 flex flex-col justify-center items-center w-full p-12 text-white">
-          {/* Event Icon */}
-          <div className="mb-8">
-            <svg className="w-24 h-24 text-white/90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
-          </div>
-          
-          <h1 className="text-4xl font-bold mb-4 text-center">Join EventHub</h1>
-          <p className="text-xl text-white/80 text-center max-w-md mb-8">
-            Create memorable events and connect with your audience like never before.
-          </p>
-          
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-8 mt-8">
-            <div className="text-center">
-              <div className="text-4xl font-bold mb-1">10K+</div>
-              <div className="text-white/70 text-sm">Events Created</div>
-            </div>
-            <div className="text-center">
-              <div className="text-4xl font-bold mb-1">50K+</div>
-              <div className="text-white/70 text-sm">Active Users</div>
-            </div>
-            <div className="text-center">
-              <div className="text-4xl font-bold mb-1">99%</div>
-              <div className="text-white/70 text-sm">Satisfaction</div>
-            </div>
-          </div>
-
-          {/* Testimonial */}
-          <div className="mt-12 bg-white/10 backdrop-blur-sm rounded-2xl p-6 max-w-md">
-            <div className="flex items-center gap-1 mb-3">
-              {[...Array(5)].map((_, i) => (
-                <svg key={i} className="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
-              ))}
-            </div>
-            <p className="text-white/90 italic mb-4">
-              "EventHub transformed how we manage our corporate events. Simply amazing!"
-            </p>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center font-bold">
-                SK
-              </div>
-              <div>
-                <div className="font-semibold">Sarah K.</div>
-                <div className="text-sm text-white/70">Event Manager</div>
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* Right Side - Image */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gray-200">
+        <img
+          src="https://img.freepik.com/free-vector/user-verification-unauthorized-access-prevention-private-account-authentication-cyber-security-people-entering-login-password-safety-measures_335657-3530.jpg?semt=ais_hybrid&w=740&q=80"
+          alt="Join EventHub - Create memorable events"
+          className="w-full h-full object-cover"
+        />
       </div>
     </div>
   );
