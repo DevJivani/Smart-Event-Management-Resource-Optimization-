@@ -33,7 +33,18 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    
+    // Phone number validation - only digits and max 10 digits
+    if (name === "phoneNumber") {
+      const phoneValue = value.replace(/\D/g, ""); // Remove non-digits
+      if (phoneValue.length <= 10) {
+        setFormData({ ...formData, [name]: phoneValue });
+      }
+      return;
+    }
+    
+    setFormData({ ...formData, [name]: value });
   };
 
   const handleImageChange = async (e) => {
@@ -52,6 +63,39 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validation - check if all fields are filled
+    if (!formData.userName || !formData.userName.trim()) {
+      toast.error("Full name is required");
+      return;
+    }
+
+    if (!formData.email || !formData.email.trim()) {
+      toast.error("Email is required");
+      return;
+    }
+
+    if (!formData.password || !formData.password.trim()) {
+      toast.error("Password is required");
+      return;
+    }
+
+    if (!formData.phoneNumber || !formData.phoneNumber.trim()) {
+      toast.error("Phone number is required");
+      return;
+    }
+
+    // Validate phone number is exactly 10 digits
+    if (formData.phoneNumber.length !== 10) {
+      toast.error("Phone number must be exactly 10 digits");
+      return;
+    }
+
+    // Validate phone number contains only digits
+    if (!/^\d{10}$/.test(formData.phoneNumber)) {
+      toast.error("Phone number must contain only digits");
+      return;
+    }
 
     try {
       dispatch(setLoading(true));
@@ -185,6 +229,9 @@ const Register = () => {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Phone Number
+                <span className="text-xs text-gray-500 font-normal ml-1">
+                  (10 digits only)
+                </span>
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -196,11 +243,23 @@ const Register = () => {
                   type="tel"
                   name="phoneNumber"
                   value={formData.phoneNumber}
-                  placeholder="+91 (555) 000-0000"
+                  placeholder="10 digit number"
                   onChange={handleChange}
-                  className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm"
+                  maxLength="10"
+                  className={`w-full pl-12 pr-16 py-3 border rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm ${
+                    formData.phoneNumber.length === 10 ? "border-green-300" : "border-gray-200"
+                  }`}
                   required
                 />
+                {formData.phoneNumber && (
+                  <div className="absolute right-4 top-12 text-sm font-medium">
+                    {formData.phoneNumber.length === 10 ? (
+                      <span className="text-green-600">✓ {formData.phoneNumber.length}/10</span>
+                    ) : (
+                      <span className="text-orange-600">{formData.phoneNumber.length}/10</span>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
