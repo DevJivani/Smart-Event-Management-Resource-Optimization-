@@ -117,6 +117,8 @@ const Register = () => {
           headers: { "Content-Type": "multipart/form-data" }
         }
       );
+      console.log(res);
+      
 
       if (res.data.success) {
         localStorage.removeItem(PENDING_IMAGE_KEY);
