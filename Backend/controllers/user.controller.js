@@ -1,6 +1,7 @@
 import { User } from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import fs from "fs/promises";
+import nodemailer from "nodemailer";
 import { uploadToCloudinary } from "../utils/cloudinary.js";
 
 const createAccessToken = async (userId) => {
@@ -330,6 +331,244 @@ export const uploadProfileImage = async (req, res) => {
         return res.status(200).json({
             message: "Profile image updated successfully",
             user: updatedUser,
+            success: true
+        });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            message: "Server error",
+            success: false
+        });
+    }
+}
+
+// Forgot Password Controller - Send OTP
+export const forgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        if (!email || !email.trim()) {
+            return res.status(400).json({
+                message: "Email is required",
+                success: false
+            });
+        }
+
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return res.status(404).json({
+                message: "User not found",
+                success: false
+            });
+        }
+
+        // Generate 6-digit OTP
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // OTP valid for 10 minutes
+
+        // Store OTP in user document
+        user.resetPasswordOtp = otp;
+        user.resetPasswordOtpExpiry = otpExpiry;
+        await user.save();
+
+        // Send OTP via email
+        try {
+            // Check if email credentials are configured
+            if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+                console.error("Email credentials not configured in environment variables");
+                
+                // Development mode: Log OTP to console instead of sending email
+                console.log(`\n========== PASSWORD RESET OTP ==========`);
+                console.log(`Email: ${email}`);
+                console.log(`OTP: ${otp}`);
+                console.log(`Valid for: 10 minutes`);
+                console.log(`==========================================\n`);
+                
+                return res.status(200).json({
+                    message: "OTP generated successfully. Check server console for OTP (development mode).",
+                    success: true,
+                    // Remove this in production
+                    devMode: true,
+                    devOtp: otp
+                });
+            }
+
+            const transporter = nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                    user: process.env.EMAIL_USER,
+                    pass: process.env.EMAIL_PASSWORD
+                }
+            });
+
+            const mailOptions = {
+                from: process.env.EMAIL_USER,
+                to: email,
+                subject: 'Password Reset OTP - EventHub',
+                html: `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 10px 10px 0 0; color: white; text-align: center;">
+                            <h2>Password Reset Request</h2>
+                        </div>
+                        <div style="padding: 30px; background: #f9f9f9; border-radius: 0 0 10px 10px;">
+                            <p style="color: #333; margin-bottom: 20px;">Hello,</p>
+                            <p style="color: #666; margin-bottom: 20px;">We received a request to reset your password. Use the OTP below to proceed:</p>
+                            <div style="background: white; border: 2px solid #667eea; border-radius: 8px; padding: 20px; text-align: center; margin: 30px 0;">
+                                <p style="font-size: 14px; color: #999; margin: 0 0 10px 0; text-transform: uppercase;">Your OTP</p>
+                                <h1 style="font-size: 36px; letter-spacing: 5px; color: #667eea; margin: 0; font-weight: bold;">${otp}</h1>
+                                <p style="font-size: 12px; color: #999; margin: 10px 0 0 0;">Valid for 10 minutes</p>
+                            </div>
+                            <p style="color: #666; margin-bottom: 10px;">If you didn't request this, please ignore this email or contact support immediately.</p>
+                            <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+                            <p style="color: #999; font-size: 12px; margin: 0;">© 2024 EventHub. All rights reserved.</p>
+                        </div>
+                    </div>
+                `
+            };
+
+            await transporter.sendMail(mailOptions);
+
+            return res.status(200).json({
+                message: "OTP sent to your email successfully",
+                success: true
+            });
+        } catch (emailError) {
+            console.error("Email sending error:", emailError);
+            console.error("Make sure EMAIL_USER and EMAIL_PASSWORD are configured in .env file");
+            
+            return res.status(500).json({
+                message: "Failed to send email. Email credentials may not be configured. Check server console for details.",
+                success: false,
+                error: emailError.message
+            });
+        }
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            message: "Server error",
+            success: false
+        });
+    }
+}
+
+// Verify OTP Controller
+export const verifyOtp = async (req, res) => {
+    try {
+        const { email, otp } = req.body;
+
+        if (!email || !otp) {
+            return res.status(400).json({
+                message: "Email and OTP are required",
+                success: false
+            });
+        }
+
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return res.status(404).json({
+                message: "User not found",
+                success: false
+            });
+        }
+
+        // Check if OTP exists and is not expired
+        if (!user.resetPasswordOtp || !user.resetPasswordOtpExpiry) {
+            return res.status(400).json({
+                message: "OTP not requested. Please request a new one.",
+                success: false
+            });
+        }
+
+        if (new Date() > user.resetPasswordOtpExpiry) {
+            return res.status(400).json({
+                message: "OTP has expired. Please request a new one.",
+                success: false
+            });
+        }
+
+        if (user.resetPasswordOtp !== otp) {
+            return res.status(400).json({
+                message: "Invalid OTP",
+                success: false
+            });
+        }
+
+        return res.status(200).json({
+            message: "OTP verified successfully",
+            success: true
+        });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            message: "Server error",
+            success: false
+        });
+    }
+}
+
+// Reset Password Controller
+export const resetPassword = async (req, res) => {
+    try {
+        const { email, otp, newPassword } = req.body;
+
+        if (!email || !otp || !newPassword) {
+            return res.status(400).json({
+                message: "Email, OTP, and new password are required",
+                success: false
+            });
+        }
+
+        if (newPassword.length < 6) {
+            return res.status(400).json({
+                message: "Password must be at least 6 characters",
+                success: false
+            });
+        }
+
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return res.status(404).json({
+                message: "User not found",
+                success: false
+            });
+        }
+
+        // Check if OTP exists and is not expired
+        if (!user.resetPasswordOtp || !user.resetPasswordOtpExpiry) {
+            return res.status(400).json({
+                message: "OTP not requested. Please request a new one.",
+                success: false
+            });
+        }
+
+        if (new Date() > user.resetPasswordOtpExpiry) {
+            return res.status(400).json({
+                message: "OTP has expired. Please request a new one.",
+                success: false
+            });
+        }
+
+        if (user.resetPasswordOtp !== otp) {
+            return res.status(400).json({
+                message: "Invalid OTP",
+                success: false
+            });
+        }
+
+        // Hash new password
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        // Update password and clear OTP fields
+        user.password = hashedPassword;
+        user.resetPasswordOtp = null;
+        user.resetPasswordOtpExpiry = null;
+        await user.save();
+
+        return res.status(200).json({
+            message: "Password reset successfully",
             success: true
         });
     } catch (error) {
