@@ -38,7 +38,11 @@ const Login = () => {
         
         dispatch(setUser(res.data.loggedInUser));
         toast.success("Login successful!");
-        navigate('/');
+        // Redirect based on role
+        const role = res.data.loggedInUser?.role;
+        if (role === 'organizer') navigate('/organizer');
+        else if (role === 'user') navigate('/dashboard');
+        else navigate('/');
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Login failed");

@@ -17,6 +17,13 @@ const fileToBase64 = (file) =>
     reader.readAsDataURL(file);
   });
 
+// Password strength checker: at least 8 chars, uppercase, lowercase, digit, special char
+const isStrongPassword = (password) => {
+  if (!password || typeof password !== "string") return false;
+  const strongRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{8,}$/;
+  return strongRegex.test(password);
+};
+
 function Profile() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -150,6 +157,12 @@ function Profile() {
 
     if (!passwordForm.currentPassword || !passwordForm.newPassword) {
       toast.error("Please fill all password fields");
+      return;
+    }
+
+    // Validate strong password
+    if (!isStrongPassword(passwordForm.newPassword)) {
+      toast.error("New password must be at least 8 characters and include uppercase, lowercase, number, and special character");
       return;
     }
 

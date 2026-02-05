@@ -48,6 +48,8 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import Profile from './pages/Profile.jsx'
 import ForgotPassword from './pages/ForgotPassword'
+import OrganizerDashboard from './pages/OrganizerDashboard'
+import UserDashboard from './pages/UserDashboard'
 import Home from './components/Home'
 
 const router = createBrowserRouter([
@@ -66,6 +68,14 @@ const router = createBrowserRouter([
   {
     path: '/forgot-password',
     element: <ForgotPassword />
+  },
+  {
+    path: '/organizer',
+    element: <OrganizerDashboard />
+  },
+  {
+    path: '/dashboard',
+    element: <UserDashboard />
   },
   {
     path: '/profile',

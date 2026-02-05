@@ -14,6 +14,13 @@ const ForgotPassword = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  // Password strength checker: at least 8 chars, uppercase, lowercase, digit, special char
+  const isStrongPassword = (password) => {
+    if (!password || typeof password !== "string") return false;
+    const strongRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{8,}$/;
+    return strongRegex.test(password);
+  };
+
   const handleRequestReset = async (e) => {
     e.preventDefault();
     
@@ -94,8 +101,8 @@ const ForgotPassword = () => {
       return;
     }
 
-    if (newPassword.length < 6) {
-      toast.error("Password must be at least 6 characters");
+    if (!isStrongPassword(newPassword)) {
+      toast.error("Password must be at least 8 characters and include uppercase, lowercase, number, and special character");
       return;
     }
 

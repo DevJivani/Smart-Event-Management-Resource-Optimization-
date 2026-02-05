@@ -17,6 +17,12 @@ const createAccessToken = async (userId) => {
     return accessToken;
 };
 
+// Password strength checker: at least 8 chars, uppercase, lowercase, digit, special char
+const isStrongPassword = (password) => {
+    if (!password || typeof password !== 'string') return false;
+    const strongRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{8,}$/;
+    return strongRegex.test(password);
+};
 // User Registration Controller
 export const userRegisteration = async (req, res) => {
     try {
@@ -41,6 +47,14 @@ export const userRegisteration = async (req, res) => {
         if (existingUser) {
             return res.status(400).json({
                 message: "User already exists",
+                success: false
+            });
+        }
+
+        // Enforce strong password policy
+        if (!isStrongPassword(password)) {
+            return res.status(400).json({
+                message: "Password must be at least 8 characters and include uppercase, lowercase, number, and special character",
                 success: false
             });
         }
@@ -258,6 +272,14 @@ export const changePassword = async (req, res) => {
         if (!isPasswordMatch) {
             return res.status(400).json({
                 message: "Current password is incorrect",
+                success: false
+            });
+        }
+
+        // Enforce strong password for updates
+        if (!isStrongPassword(newPassword)) {
+            return res.status(400).json({
+                message: "New password must be at least 8 characters and include uppercase, lowercase, number, and special character",
                 success: false
             });
         }
@@ -520,9 +542,10 @@ export const resetPassword = async (req, res) => {
             });
         }
 
-        if (newPassword.length < 6) {
+        // Enforce strong password for reset
+        if (!isStrongPassword(newPassword)) {
             return res.status(400).json({
-                message: "Password must be at least 6 characters",
+                message: "Password must be at least 8 characters and include uppercase, lowercase, number, and special character",
                 success: false
             });
         }

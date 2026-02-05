@@ -1,4 +1,5 @@
-import { User } from "../models/user.model";
+import { User } from "../models/user.model.js";
+import jwt from 'jsonwebtoken'
 
 
 export const verifyJwt = async(req,res,next) =>{
@@ -12,7 +13,7 @@ export const verifyJwt = async(req,res,next) =>{
             })
         }
 
-        const decodeToken = await Jwt.verify(token, process.env.ACCESS_TOKEN_SECRET)
+        const decodeToken = await jwt.verify(token, process.env.ACCESS_TOKEN_SECRET)
 
         const user = await User.findById(decodeToken?._id).select("-password")
 

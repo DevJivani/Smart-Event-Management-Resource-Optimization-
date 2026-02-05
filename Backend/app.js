@@ -2,6 +2,7 @@ import express from 'express';
 import cors from "cors";
 import cookieparser from "cookie-parser";
 import userRouter from "./Routes/user.route.js";
+import eventRouter from "./Routes/event.route.js";
 
 const app = express();
 
@@ -27,5 +28,8 @@ app.use(cookieparser());
 
 // User-related routes
 app.use("/api/v1/user", userRouter);
+
+// Event-related routes
+app.use("/api/v1/event", eventRouter);
 
 export { app };
