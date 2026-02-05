@@ -12,7 +12,8 @@ const Login = () => {
 
   const [formData, setFormData] = useState({
     email: "",
-    password: ""
+    password: "",
+    role: "user"
   });
 
   const [showPassword, setShowPassword] = useState(false);
@@ -180,6 +181,41 @@ const Login = () => {
                     </svg>
                   )}
                 </button>
+              </div>
+            </div>
+
+            {/* Role Selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Login as
+              </label>
+              <div className="space-y-2">
+                <label className="flex items-center p-2.5 border-2 border-gray-200 rounded-lg cursor-pointer transition-all" style={{borderColor: formData.role === "user" ? "#7c3aed" : ""}}>
+                  <input
+                    type="radio"
+                    name="role"
+                    value="user"
+                    checked={formData.role === "user"}
+                    onChange={handleChange}
+                    className="w-4 h-4 text-purple-600 border-gray-300 focus:ring-purple-500"
+                  />
+                  <div className="ml-3">
+                    <p className="text-sm font-medium text-gray-700">User / Attendee</p>
+                  </div>
+                </label>
+                <label className="flex items-center p-2.5 border-2 border-gray-200 rounded-lg cursor-pointer transition-all" style={{borderColor: formData.role === "organizer" ? "#7c3aed" : ""}}>
+                  <input
+                    type="radio"
+                    name="role"
+                    value="organizer"
+                    checked={formData.role === "organizer"}
+                    onChange={handleChange}
+                    className="w-4 h-4 text-purple-600 border-gray-300 focus:ring-purple-500"
+                  />
+                  <div className="ml-3">
+                    <p className="text-sm font-medium text-gray-700">Organizer</p>
+                  </div>
+                </label>
               </div>
             </div>
 

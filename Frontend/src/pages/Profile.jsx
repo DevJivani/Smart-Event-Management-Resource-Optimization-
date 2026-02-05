@@ -279,17 +279,35 @@ function Profile() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Phone
+                    Role
                   </label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={profileForm.phone}
-                    onChange={handleProfileChange}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
-                    placeholder="+91 00000 00000"
-                  />
+                  <div className="w-full px-4 py-2.5 border border-gray-200 rounded-xl bg-gray-50 text-sm flex items-center">
+                    <span className="font-medium text-gray-900 capitalize">
+                      {user.role === "organizer" ? "Organizer" : "User / Attendee"}
+                    </span>
+                    <span className={`ml-2 px-2.5 py-0.5 text-xs font-semibold rounded-full ${
+                      user.role === "organizer" 
+                        ? "bg-blue-100 text-blue-800" 
+                        : "bg-green-100 text-green-800"
+                    }`}>
+                      {user.role}
+                    </span>
+                  </div>
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Phone
+                </label>
+                <input
+                  type="tel"
+                  name="phone"
+                  value={profileForm.phone}
+                  onChange={handleProfileChange}
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                  placeholder="+91 00000 00000"
+                />
               </div>
 
               <div>

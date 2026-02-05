@@ -25,6 +25,7 @@ const Register = () => {
     email: "",
     password: "",
     phoneNumber: "",
+    role: "user",
   });
   const [profileImage, setProfileImage] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -59,6 +60,7 @@ const Register = () => {
       form.append("email", formData.email);
       form.append("password", formData.password);
       form.append("phoneNumber", formData.phoneNumber);
+      form.append("role", formData.role);
       if (profileImage) {
         form.append("profileImage", profileImage);
       }
@@ -258,6 +260,43 @@ const Register = () => {
                 {" "}and{" "}
                 <a href="#" className="text-emerald-600 hover:underline font-medium">Privacy Policy</a>
               </label>
+            </div>
+
+            {/* Role Selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                What is your role?
+              </label>
+              <div className="space-y-3">
+                <label className="flex items-center p-3 border-2 border-gray-200 rounded-xl cursor-pointer transition-all" style={{borderColor: formData.role === "user" ? "#10b981" : ""}}>
+                  <input
+                    type="radio"
+                    name="role"
+                    value="user"
+                    checked={formData.role === "user"}
+                    onChange={handleChange}
+                    className="w-4 h-4 text-emerald-600 border-gray-300 focus:ring-emerald-500"
+                  />
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-700">User / Attendee</p>
+                    <p className="text-xs text-gray-500">Register to attend events and discover new experiences</p>
+                  </div>
+                </label>
+                <label className="flex items-center p-3 border-2 border-gray-200 rounded-xl cursor-pointer transition-all" style={{borderColor: formData.role === "organizer" ? "#10b981" : ""}}>
+                  <input
+                    type="radio"
+                    name="role"
+                    value="organizer"
+                    checked={formData.role === "organizer"}
+                    onChange={handleChange}
+                    className="w-4 h-4 text-emerald-600 border-gray-300 focus:ring-emerald-500"
+                  />
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-700">Organizer</p>
+                    <p className="text-xs text-gray-500">Create and manage your own events</p>
+                  </div>
+                </label>
+              </div>
             </div>
 
             {/* Submit Button */}
