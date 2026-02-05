@@ -19,11 +19,18 @@ const createAccessToken = async (userId) => {
 // User Registration Controller
 export const userRegisteration = async (req, res) => {
     try {
-        const { userName, email, password, phoneNumber } = req.body;
+        const { userName, email, password, phoneNumber, role } = req.body;
 
-        if (!userName || !email || !password || !phoneNumber) {
+        if (!userName || !email || !password || !phoneNumber || !role) {
             return res.status(400).json({
                 message: "All fields are required",
+                success: false
+            });
+        }
+
+        if (!["organizer", "user"].includes(role)) {
+            return res.status(400).json({
+                message: "Invalid role selected",
                 success: false
             });
         }
@@ -63,6 +70,7 @@ export const userRegisteration = async (req, res) => {
             email,
             password: hashedPassword,
             phone: phoneNumber,
+            role: role,
             profileImage: profileImageUrl
         });
 
@@ -87,9 +95,9 @@ export const userRegisteration = async (req, res) => {
 
 export const userLogin = async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { email, password, role } = req.body;
 
-        if (!email || !password) {
+        if (!email || !password || !role) {
             return res.status(400).json({
                 message: "All fields are required",
                 success: false
@@ -101,6 +109,14 @@ export const userLogin = async (req, res) => {
         if (!user) {
             return res.status(404).json({
                 message: "User not found",
+                success: false
+            });
+        }
+
+        // Check if selected role matches user's stored role
+        if (user.role !== role) {
+            return res.status(403).json({
+                message: `Invalid role. You registered as ${user.role === "organizer" ? "Organizer" : "User"}. Please select the correct role.`,
                 success: false
             });
         }
