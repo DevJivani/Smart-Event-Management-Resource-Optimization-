@@ -1,0 +1,223 @@
+# Forgot Password Feature - Quick Reference Guide
+
+## ✅ What Was Implemented
+
+### Frontend Components
+- **ForgotPassword.jsx** - Three-step password reset page with:
+  - Email input (Step 1)
+  - OTP verification (Step 2)  
+  - New password creation (Step 3)
+  - Beautiful gradient design with animations
+  - Form validation and error handling
+  - Loading states and toast notifications
+
+### Backend Functionality
+- **3 New API Endpoints:**
+  1. `POST /api/v1/user/forgot-password` - Send OTP to email
+  2. `POST /api/v1/user/verify-otp` - Validate OTP code
+  3. `POST /api/v1/user/reset-password` - Update password
+
+### Security Features
+- 6-digit OTP generation
+- 10-minute OTP expiration
+- Email verification required
+- Password hashing with bcrypt
+- Input validation at each step
+
+---
+
+## 🔧 Environment Setup Required
+
+Add to your `.env` file in Backend folder:
+
+```
+EMAIL_USER=your-email@gmail.com
+EMAIL_PASSWORD=your-app-specific-password
+```
+
+**For Gmail Setup:**
+1. Enable 2-Factor Authentication on your Google account
+2. Go to Google Account → Security → App Passwords
+3. Generate an App Password for Mail/Windows
+4. Use this password in EMAIL_PASSWORD variable
+
+---
+
+## 📱 User Journey
+
+```
+Login Page → Click "Forgot password?" link
+                    ↓
+          Enter registered email
+                    ↓
+          OTP sent to email inbox
+                    ↓
+          Enter 6-digit OTP from email
+                    ↓
+          Create new password (min 6 chars)
+                    ↓
+          Password reset successful!
+                    ↓
+          Redirected to Login page
+```
+
+---
+
+## 🧪 Testing Checklist
+
+- [ ] Navigate to `/forgot-password` from login page
+- [ ] Submit form with unregistered email → Shows "User not found"
+- [ ] Submit form with registered email → Success toast appears
+- [ ] Enter wrong OTP → Shows "Invalid OTP" error
+- [ ] Enter correct OTP → Proceeds to password reset step
+- [ ] Try passwords that don't match → Shows validation error
+- [ ] Try password with < 6 characters → Shows validation error
+- [ ] Enter valid new password → Success message
+- [ ] Redirected to login page after reset
+- [ ] Login with new password works ✓
+
+---
+
+## 📂 Files Created/Modified
+
+### Created:
+- `Frontend/src/pages/ForgotPassword.jsx` (NEW)
+- `Backend/FORGOT_PASSWORD_IMPLEMENTATION.md` (Documentation)
+
+### Modified:
+- `Frontend/src/pages/Login.jsx` - Added forgot password link
+- `Frontend/src/App.jsx` - Added forgot-password route
+- `Backend/models/user.model.js` - Added OTP fields
+- `Backend/controllers/user.controller.js` - Added 3 controller functions
+- `Backend/Routes/user.route.js` - Added 3 routes
+- `Backend/package.json` - Added nodemailer (already installed)
+
+---
+
+## 🚀 How to Use
+
+1. **Start Backend:** `npm start` (in Backend folder)
+2. **Start Frontend:** `npm run dev` (in Frontend folder)
+3. **Navigate to:** `http://localhost:5173/login`
+4. **Click:** "Forgot password?" link
+5. **Follow:** 3-step process to reset password
+
+---
+
+## ⚙️ API Request/Response Examples
+
+### Request OTP
+```bash
+POST http://localhost:3000/api/v1/user/forgot-password
+Content-Type: application/json
+
+{
+  "email": "user@example.com"
+}
+
+# Success Response (200)
+{
+  "message": "OTP sent to your email successfully",
+  "success": true
+}
+```
+
+### Verify OTP
+```bash
+POST http://localhost:3000/api/v1/user/verify-otp
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "otp": "123456"
+}
+
+# Success Response (200)
+{
+  "message": "OTP verified successfully",
+  "success": true
+}
+```
+
+### Reset Password
+```bash
+POST http://localhost:3000/api/v1/user/reset-password
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "otp": "123456",
+  "newPassword": "newPassword123"
+}
+
+# Success Response (200)
+{
+  "message": "Password reset successfully",
+  "success": true
+}
+```
+
+---
+
+## 🐛 Common Issues & Fixes
+
+| Issue | Cause | Fix |
+|-------|-------|-----|
+| "Failed to send email" | Missing .env credentials | Add EMAIL_USER and EMAIL_PASSWORD |
+| OTP not received | Gmail blocking app | Use App-specific password, not regular password |
+| "OTP has expired" | User took > 10 mins | Request new OTP |
+| "User not found" | Email not registered | Register account first |
+| Passwords don't match error | Frontend validation | Ensure both password fields are identical |
+
+---
+
+## 💡 Key Features
+
+✅ Three-step verification process
+✅ Email OTP validation
+✅ Secure password hashing
+✅ 10-minute OTP expiration
+✅ Beautiful responsive UI
+✅ Comprehensive error handling
+✅ Toast notifications
+✅ Loading states
+✅ Back navigation between steps
+✅ Input validation at each step
+
+---
+
+## 📝 Notes
+
+- OTP is valid for 10 minutes from generation
+- Email service requires internet connection
+- OTP can be regenerated by requesting new one
+- Successful reset clears all OTP data
+- Password must be at least 6 characters
+- Email must be registered in system
+- All operations are case-insensitive for emails
+
+---
+
+## 🎨 UI Features
+
+- Gradient purple-to-indigo background on desktop
+- Animated blur background elements
+- Responsive design (mobile-first)
+- Password visibility toggle buttons
+- Smooth loading animations
+- Toast notifications for feedback
+- Professional email template
+- Form validation indicators
+- Step progress indication
+
+---
+
+## Need Help?
+
+Refer to `FORGOT_PASSWORD_IMPLEMENTATION.md` for detailed technical documentation including:
+- Complete API endpoint specifications
+- Database schema changes
+- Email template format
+- Security implementation details
+- Error handling scenarios
+- Optional enhancement ideas

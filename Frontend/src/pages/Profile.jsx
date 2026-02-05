@@ -24,9 +24,14 @@ function Profile() {
 
   const { user, loading } = useSelector((state) => state.auth);
 
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [originalProfileForm, setOriginalProfileForm] = useState({
+    name: "",
+    phone: "",
+  });
+
   const [profileForm, setProfileForm] = useState({
     name: "",
-    email: "",
     phone: "",
   });
 
@@ -44,15 +49,40 @@ function Profile() {
       return;
     }
 
-    setProfileForm({
+    const initialForm = {
       name: user.name || "",
-      email: user.email || "",
       phone: user.phone || "",
-    });
+    };
+    setProfileForm(initialForm);
+    setOriginalProfileForm(initialForm);
   }, [user, navigate]);
 
   const handleProfileChange = (e) => {
-    setProfileForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    
+    // Phone number validation - only digits and max 10 digits
+    if (name === "phone") {
+      const phoneValue = value.replace(/\D/g, ""); // Remove non-digits
+      if (phoneValue.length <= 10) {
+        setProfileForm((prev) => ({ ...prev, [name]: phoneValue }));
+      }
+      return;
+    }
+    
+    setProfileForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleEditToggle = () => {
+    if (isEditMode) {
+      // Switching from edit to view mode - reset changes
+      setProfileForm(originalProfileForm);
+    }
+    setIsEditMode(!isEditMode);
+  };
+
+  const handleResetForm = () => {
+    setProfileForm(originalProfileForm);
+    toast.success("Form reset to original values");
   };
 
   const handlePasswordChange = (e) => {
@@ -60,8 +90,31 @@ function Profile() {
   };
 
   const handleUpdateProfile = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (!user?._id) return;
+
+    // Validation - check if fields are empty
+    if (!profileForm.name || !profileForm.name.trim()) {
+      toast.error("Full name cannot be empty");
+      return;
+    }
+
+    if (!profileForm.phone || !profileForm.phone.trim()) {
+      toast.error("Phone number cannot be empty");
+      return;
+    }
+
+    // Validate phone number is exactly 10 digits
+    if (profileForm.phone.length !== 10) {
+      toast.error("Phone number must be exactly 10 digits");
+      return;
+    }
+
+    // Validate phone number contains only digits
+    if (!/^\d{10}$/.test(profileForm.phone)) {
+      toast.error("Phone number must contain only digits");
+      return;
+    }
 
     try {
       dispatch(setLoading(true));
@@ -71,7 +124,6 @@ function Profile() {
         {
           userId: user._id,
           name: profileForm.name,
-          email: profileForm.email,
           phone: profileForm.phone,
         },
         { withCredentials: true }
@@ -79,7 +131,9 @@ function Profile() {
 
       if (res.data.success) {
         dispatch(setUser(res.data.user));
-        toast.success("Profile updated");
+        setOriginalProfileForm(profileForm); // Update original form with new values
+        setIsEditMode(false); // Exit edit mode
+        toast.success("Profile updated successfully");
       } else {
         toast.error(res.data.message || "Failed to update profile");
       }
@@ -261,7 +315,7 @@ function Profile() {
               Update your basic profile information.
             </p>
 
-            <form onSubmit={handleUpdateProfile} className="space-y-4">
+            <div className="space-y-4">
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -272,7 +326,10 @@ function Profile() {
                     name="name"
                     value={profileForm.name}
                     onChange={handleProfileChange}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                    disabled={!isEditMode}
+                    className={`w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm ${
+                      isEditMode ? "bg-white" : "bg-gray-50 cursor-not-allowed"
+                    }`}
                     placeholder="Your name"
                     required
                   />
@@ -299,56 +356,88 @@ function Profile() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Phone
+                  {isEditMode && (
+                    <span className="text-xs text-gray-500 font-normal ml-1">
+                      (10 digits only)
+                    </span>
+                  )}
                 </label>
-                <input
-                  type="tel"
-                  name="phone"
-                  value={profileForm.phone}
-                  onChange={handleProfileChange}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
-                  placeholder="+91 00000 00000"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  value={profileForm.email}
-                  onChange={handleProfileChange}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
-                  placeholder="you@example.com"
-                  required
-                />
+                <div className="relative">
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={profileForm.phone}
+                    onChange={handleProfileChange}
+                    disabled={!isEditMode}
+                    maxLength="10"
+                    className={`w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm ${
+                      isEditMode 
+                        ? `bg-white border-gray-200 ${profileForm.phone.length === 10 ? "border-green-300" : "border-gray-200"}` 
+                        : "bg-gray-50 cursor-not-allowed border-gray-200"
+                    }`}
+                    placeholder="10 digit number"
+                  />
+                  {isEditMode && profileForm.phone && (
+                    <div className="absolute right-4 top-3 text-sm font-medium">
+                      {profileForm.phone.length === 10 ? (
+                        <span className="text-green-600">✓ {profileForm.phone.length}/10</span>
+                      ) : (
+                        <span className="text-orange-600">{profileForm.phone.length}/10</span>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="pt-2 flex flex-wrap gap-3">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl text-sm font-medium shadow hover:shadow-lg disabled:opacity-70"
-                >
-                  {loading ? "Saving..." : "Save changes"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setProfileForm({
-                      name: user.name || "",
-                      email: user.email || "",
-                      phone: user.phone || "",
-                    });
-                    toast.success("Reset");
-                  }}
-                  className="px-5 py-2.5 border border-gray-200 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50"
-                >
-                  Reset
-                </button>
+                {!isEditMode ? (
+                  <button
+                    type="button"
+                    onClick={handleEditToggle}
+                    className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl text-sm font-medium shadow hover:shadow-lg transition-all duration-200 flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    Edit Profile
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleUpdateProfile}
+                      disabled={loading}
+                      className="px-5 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl text-sm font-medium shadow hover:shadow-lg disabled:opacity-70 transition-all duration-200 flex items-center gap-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                      </svg>
+                      {loading ? "Saving..." : "Save Changes"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleResetForm}
+                      className="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-all duration-200 flex items-center gap-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      Reset
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleEditToggle}
+                      className="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-xl text-sm font-medium hover:bg-red-50 hover:border-red-300 hover:text-red-700 transition-all duration-200 flex items-center gap-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      Cancel
+                    </button>
+                  </>
+                )}
               </div>
-            </form>
+            </div>
           </section>
 
           {/* Summary card */}
