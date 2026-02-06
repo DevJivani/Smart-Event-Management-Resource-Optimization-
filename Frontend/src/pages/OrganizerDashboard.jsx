@@ -5,6 +5,7 @@ import axiosInstance from "../utils/axios";
 import toast from "react-hot-toast";
 import CreateEventModal from "../components/CreateEventModal";
 import EditEventModal from "../components/EditEventModal";
+import Navbar from "../components/Navbar";
 
 const OrganizerDashboard = () => {
     const { user, role } = useSelector((state) => state.auth);
@@ -14,35 +15,26 @@ const OrganizerDashboard = () => {
     const [showEditModal, setShowEditModal] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState(null);
 
-    // Redirect if not an organizer
-    if (role !== "organizer") {
-        return <Navigate to="/login" replace />;
-    }
-
-    // Fetch organizer's events
-    const fetchEvents = async () => {
-        try {
-            setLoading(true);
-            const response = await axiosInstance.get(
-                `/api/v1/event/organizer/${user?._id}`
-            );
-
-            if (response.data.success) {
-                setEvents(response.data.events || []);
-            } else {
-                toast.error(response.data.message || "Failed to fetch events");
-            }
-        } catch (error) {
-            toast.error(error.response?.data?.message || "Error fetching events");
-        } finally {
-            setLoading(false);
-        }
-    };
-
     useEffect(() => {
-        if (user?._id) {
-            fetchEvents();
-        }
+        const fetchEvents = async () => {
+            if (!user?._id) return;
+            try {
+                setLoading(true);
+                const response = await axiosInstance.get(
+                    `/api/v1/event/organizer/${user._id}`
+                );
+                if (response.data.success) {
+                    setEvents(response.data.events || []);
+                } else {
+                    toast.error(response.data.message || "Failed to fetch events");
+                }
+            } catch (error) {
+                toast.error(error.response?.data?.message || "Error fetching events");
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchEvents();
     }, [user?._id]);
 
     // Handle edit event
@@ -64,7 +56,23 @@ const OrganizerDashboard = () => {
 
             if (response.data.success) {
                 toast.success("Event deleted successfully");
-                fetchEvents();
+                // Re-fetch events after delete
+                if (user?._id) {
+                    setLoading(true);
+                    axiosInstance
+                        .get(`/api/v1/event/organizer/${user._id}`)
+                        .then((res) => {
+                            if (res.data.success) {
+                                setEvents(res.data.events || []);
+                            } else {
+                                toast.error(res.data.message || "Failed to fetch events");
+                            }
+                        })
+                        .catch((err) => {
+                            toast.error(err.response?.data?.message || "Error fetching events");
+                        })
+                        .finally(() => setLoading(false));
+                }
             } else {
                 toast.error(response.data.message || "Failed to delete event");
             }
@@ -75,7 +83,23 @@ const OrganizerDashboard = () => {
 
     // Handle event creation or update
     const handleEventSaved = () => {
-        fetchEvents();
+        // Re-fetch after save
+        if (user?._id) {
+            setLoading(true);
+            axiosInstance
+                .get(`/api/v1/event/organizer/${user._id}`)
+                .then((response) => {
+                    if (response.data.success) {
+                        setEvents(response.data.events || []);
+                    } else {
+                        toast.error(response.data.message || "Failed to fetch events");
+                    }
+                })
+                .catch((error) => {
+                    toast.error(error.response?.data?.message || "Error fetching events");
+                })
+                .finally(() => setLoading(false));
+        }
         setShowCreateModal(false);
         setShowEditModal(false);
         setSelectedEvent(null);
@@ -96,8 +120,14 @@ const OrganizerDashboard = () => {
         }
     };
 
+    // Redirect if not an organizer
+    if (role !== "organizer") {
+        return <Navigate to="/login" replace />;
+    }
+
     return (
         <div className="min-h-screen bg-gray-50">
+            <Navbar />
             {/* Header */}
             <div className="bg-white shadow">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

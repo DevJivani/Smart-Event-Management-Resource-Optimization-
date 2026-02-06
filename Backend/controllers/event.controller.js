@@ -4,6 +4,35 @@ import { EventCategory } from "../models/eventCategory.model.js";
 import { uploadToCloudinary } from "../utils/cloudinary.js";
 import fs from "fs/promises";
 
+// Get all public events (for users)
+export const getAllEvents = async (req, res) => {
+    try {
+        const { status } = req.query;
+        const statusFilter = Array.isArray(status)
+            ? { status: { $in: status } }
+            : status
+            ? { status }
+            : { status: { $in: ["upcoming", "ongoing"] } };
+
+        const events = await Event.find(statusFilter)
+            .populate("categoryId", "name")
+            .populate("createdBy", "name email")
+            .sort({ startDate: 1, createdAt: -1 });
+
+        return res.status(200).json({
+            message: "Events fetched successfully",
+            events,
+            success: true
+        });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            message: "Server error",
+            success: false
+        });
+    }
+};
+
 // Get all events by organizer
 export const getOrganizerEvents = async (req, res) => {
     try {

@@ -1,5 +1,5 @@
 import express from "express";
-import { createEvent, deleteEvent, getEventById, getEventCategories, getOrganizerEvents, updateEvent } from "../controllers/event.controller.js";
+import { createEvent, deleteEvent, getEventById, getEventCategories, getOrganizerEvents, updateEvent, getAllEvents } from "../controllers/event.controller.js";
 import { verifyJwt } from "../middlewares/auth.middleware.js";
 import { upload } from "../middlewares/multer.middleware.js";
 
@@ -7,6 +7,9 @@ const router = express.Router();
 
 // Get all categories
 router.get("/categories", getEventCategories);
+
+// Get all public events
+router.get("/", getAllEvents);
 
 // Get event by ID
 router.get("/:eventId", getEventById);
