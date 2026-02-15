@@ -3,6 +3,11 @@ import bcrypt from "bcryptjs";
 import fs from "fs/promises";
 import nodemailer from "nodemailer";
 import { uploadToCloudinary } from "../utils/cloudinary.js";
+import dotenv from 'dotenv'
+
+dotenv.config({})
+
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "admin@eventhub.com";
 
 const createAccessToken = async (userId) => {
     const user = await User.findById(userId);
@@ -35,9 +40,16 @@ export const userRegisteration = async (req, res) => {
             });
         }
 
-        if (!["organizer", "user"].includes(role)) {
+        if (!["organizer", "user", "admin"].includes(role)) {
             return res.status(400).json({
                 message: "Invalid role selected",
+                success: false
+            });
+        }
+
+        if (role === "admin" && email !== ADMIN_EMAIL) {
+            return res.status(403).json({
+                message: "Admin registration is restricted to the configured admin email",
                 success: false
             });
         }
@@ -128,12 +140,26 @@ export const userLogin = async (req, res) => {
             });
         }
 
-        // Check if selected role matches user's stored role
-        if (user.role !== role) {
-            return res.status(403).json({
-                message: `Invalid role. You registered as ${user.role === "organizer" ? "Organizer" : "User"}. Please select the correct role.`,
-                success: false
-            });
+        if (role === "admin") {
+            if (email !== ADMIN_EMAIL) {
+                return res.status(403).json({
+                    message: "Unauthorized admin email",
+                    success: false
+                });
+            }
+            if (user.role !== "admin") {
+                return res.status(403).json({
+                    message: "This account is not an admin. Please select the correct role.",
+                    success: false
+                });
+            }
+        } else {
+            if (user.role !== role) {
+                return res.status(403).json({
+                    message: `Invalid role. You registered as ${user.role === "organizer" ? "Organizer" : user.role === "admin" ? "Admin" : "User"}. Please select the correct role.`,
+                    success: false
+                });
+            }
         }
 
         const isPasswordMatch = await bcrypt.compare(password, user.password);

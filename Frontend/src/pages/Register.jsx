@@ -369,6 +369,20 @@ const Register = () => {
                     <p className="text-xs text-gray-500">Create and manage your own events</p>
                   </div>
                 </label>
+                <label className="flex items-center p-3 border-2 border-gray-200 rounded-xl cursor-pointer transition-all" style={{borderColor: formData.role === "admin" ? "#10b981" : ""}}>
+                  <input
+                    type="radio"
+                    name="role"
+                    value="admin"
+                    checked={formData.role === "admin"}
+                    onChange={handleChange}
+                    className="w-4 h-4 text-emerald-600 border-gray-300 focus:ring-emerald-500"
+                  />
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-700">Admin</p>
+                    <p className="text-xs text-gray-500">Only use the configured admin email</p>
+                  </div>
+                </label>
               </div>
             </div>
 

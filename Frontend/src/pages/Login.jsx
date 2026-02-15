@@ -42,6 +42,7 @@ const Login = () => {
         const role = res.data.loggedInUser?.role;
         if (role === 'organizer') navigate('/organizer');
         else if (role === 'user') navigate('/dashboard');
+        else if (role === 'admin') navigate('/admin');
         else navigate('/');
       }
     } catch (error) {
@@ -218,6 +219,19 @@ const Login = () => {
                   />
                   <div className="ml-3">
                     <p className="text-sm font-medium text-gray-700">Organizer</p>
+                  </div>
+                </label>
+                <label className="flex items-center p-2.5 border-2 border-gray-200 rounded-lg cursor-pointer transition-all" style={{borderColor: formData.role === "admin" ? "#7c3aed" : ""}}>
+                  <input
+                    type="radio"
+                    name="role"
+                    value="admin"
+                    checked={formData.role === "admin"}
+                    onChange={handleChange}
+                    className="w-4 h-4 text-purple-600 border-gray-300 focus:ring-purple-500"
+                  />
+                  <div className="ml-3">
+                    <p className="text-sm font-medium text-gray-700">Admin</p>
                   </div>
                 </label>
               </div>

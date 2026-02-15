@@ -181,7 +181,7 @@ function Home() {
             </div>
           </div>
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-500 text-sm">
-            © 2024 EventHub. All rights reserved.
+            © 2026 EventHub. All rights reserved.
           </div>
         </div>
       </footer>

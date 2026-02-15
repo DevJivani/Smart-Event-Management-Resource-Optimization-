@@ -283,6 +283,16 @@ const OrganizerDashboard = () => {
                                                         >
                                                             {event.status}
                                                         </span>
+                                                        {event.isDisabled && (
+                                                            <span className="inline-block ml-2 px-3 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700">
+                                                                Disabled
+                                                            </span>
+                                                        )}
+                                                        {!event.isApproved && (
+                                                            <span className="inline-block ml-2 px-3 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-700">
+                                                                Not approved
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>

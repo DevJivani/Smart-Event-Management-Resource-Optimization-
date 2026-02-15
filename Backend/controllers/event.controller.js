@@ -7,14 +7,27 @@ import fs from "fs/promises";
 // Get all public events (for users)
 export const getAllEvents = async (req, res) => {
     try {
-        const { status } = req.query;
+        const { status, categoryId, city } = req.query;
         const statusFilter = Array.isArray(status)
             ? { status: { $in: status } }
             : status
             ? { status }
             : { status: { $in: ["upcoming", "ongoing"] } };
 
-        const events = await Event.find(statusFilter)
+        const baseFilter = {
+            ...statusFilter,
+            isApproved: true,
+            isDisabled: false,
+        };
+
+        if (categoryId) {
+            baseFilter.categoryId = categoryId;
+        }
+        if (city) {
+            baseFilter.city = new RegExp(`^${city}$`, "i");
+        }
+
+        const events = await Event.find(baseFilter)
             .populate("categoryId", "name")
             .populate("createdBy", "name email")
             .sort({ startDate: 1, createdAt: -1 });
@@ -336,6 +349,192 @@ export const getEventCategories = async (req, res) => {
             message: "Server error while fetching categories",
             success: false,
             error: error.message
+        });
+    }
+};
+
+// Admin: get all events (ignores approval/disable filters)
+export const adminGetAllEvents = async (req, res) => {
+    try {
+        if (!req.user || req.user.role !== "admin") {
+            return res.status(403).json({
+                message: "Only admin can perform this action",
+                success: false
+            });
+        }
+        const { status, categoryId, city } = req.query;
+        const filter = {};
+        if (status) {
+            if (Array.isArray(status)) filter.status = { $in: status };
+            else filter.status = status;
+        }
+        if (categoryId) filter.categoryId = categoryId;
+        if (city) filter.city = new RegExp(`^${city}$`, "i");
+        const events = await Event.find(filter)
+            .populate("categoryId", "name")
+            .populate("createdBy", "name email")
+            .sort({ startDate: 1, createdAt: -1 });
+        return res.status(200).json({
+            message: "Admin events fetched successfully",
+            events,
+            success: true
+        });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            message: "Server error",
+            success: false
+        });
+    }
+};
+
+// Admin: approve event
+export const adminApproveEvent = async (req, res) => {
+    try {
+        const { eventId } = req.params;
+        if (!req.user || req.user.role !== "admin") {
+            return res.status(403).json({
+                message: "Only admin can perform this action",
+                success: false
+            });
+        }
+        const event = await Event.findById(eventId);
+        if (!event) {
+            return res.status(404).json({
+                message: "Event not found",
+                success: false
+            });
+        }
+        event.isApproved = true;
+        await event.save();
+        const populatedEvent = await Event.findById(event._id)
+            .populate("categoryId", "name")
+            .populate("createdBy", "name email");
+        return res.status(200).json({
+            message: "Event approved",
+            event: populatedEvent,
+            success: true
+        });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            message: "Server error",
+            success: false
+        });
+    }
+};
+
+// Admin: disable event
+export const adminDisableEvent = async (req, res) => {
+    try {
+        const { eventId } = req.params;
+        if (!req.user || req.user.role !== "admin") {
+            return res.status(403).json({
+                message: "Only admin can perform this action",
+                success: false
+            });
+        }
+        const event = await Event.findById(eventId);
+        if (!event) {
+            return res.status(404).json({
+                message: "Event not found",
+                success: false
+            });
+        }
+        event.isDisabled = true;
+        await event.save();
+        const populatedEvent = await Event.findById(event._id)
+            .populate("categoryId", "name")
+            .populate("createdBy", "name email");
+        return res.status(200).json({
+            message: "Event disabled",
+            event: populatedEvent,
+            success: true
+        });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            message: "Server error",
+            success: false
+        });
+    }
+};
+
+// Admin: enable event
+export const adminEnableEvent = async (req, res) => {
+    try {
+        const { eventId } = req.params;
+        if (!req.user || req.user.role !== "admin") {
+            return res.status(403).json({
+                message: "Only admin can perform this action",
+                success: false
+            });
+        }
+        const event = await Event.findById(eventId);
+        if (!event) {
+            return res.status(404).json({
+                message: "Event not found",
+                success: false
+            });
+        }
+        event.isDisabled = false;
+        await event.save();
+        const populatedEvent = await Event.findById(event._id)
+            .populate("categoryId", "name")
+            .populate("createdBy", "name email");
+        return res.status(200).json({
+            message: "Event enabled",
+            event: populatedEvent,
+            success: true
+        });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            message: "Server error",
+            success: false
+        });
+    }
+};
+
+// Admin: update event status
+export const adminUpdateStatus = async (req, res) => {
+    try {
+        const { eventId } = req.params;
+        const { status } = req.body;
+        if (!req.user || req.user.role !== "admin") {
+            return res.status(403).json({
+                message: "Only admin can perform this action",
+                success: false
+            });
+        }
+        if (!status || !["upcoming", "ongoing", "completed", "cancelled"].includes(status)) {
+            return res.status(400).json({
+                message: "Invalid status",
+                success: false
+            });
+        }
+        const event = await Event.findById(eventId);
+        if (!event) {
+            return res.status(404).json({
+                message: "Event not found",
+                success: false
+            });
+        }
+        event.status = status;
+        await event.save();
+        const populatedEvent = await Event.findById(event._id)
+            .populate("categoryId", "name")
+            .populate("createdBy", "name email");
+        return res.status(200).json({
+            message: "Event status updated",
+            event: populatedEvent,
+            success: true
+        });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            message: "Server error",
+            success: false
         });
     }
 };

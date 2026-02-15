@@ -16,13 +16,21 @@ export const verifyJwt = async(req,res,next) =>{
         const decodeToken = await jwt.verify(token, process.env.ACCESS_TOKEN_SECRET)
 
         const user = await User.findById(decodeToken?._id).select("-password")
+        if (!user) {
+            return res.status(401).json({
+                message: "Unauthorized request",
+                success: false
+            })
+        }
 
         req.user = user;
         next();
 
     } catch (error) {
-        console.log(error);
-        
+        return res.status(401).json({
+            message: "Unauthorized request",
+            success: false
+        })
     }
 
 }

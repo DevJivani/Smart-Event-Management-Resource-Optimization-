@@ -50,6 +50,7 @@ import Profile from './pages/Profile.jsx'
 import ForgotPassword from './pages/ForgotPassword'
 import OrganizerDashboard from './pages/OrganizerDashboard'
 import UserDashboard from './pages/UserDashboard'
+import AdminDashboard from './pages/AdminDashboard'
 import Home from './components/Home'
 
 const router = createBrowserRouter([
@@ -76,6 +77,10 @@ const router = createBrowserRouter([
   {
     path: '/dashboard',
     element: <UserDashboard />
+  },
+  {
+    path: '/admin',
+    element: <AdminDashboard />
   },
   {
     path: '/profile',
