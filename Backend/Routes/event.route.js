@@ -1,5 +1,5 @@
 import express from "express";
-import { createEvent, deleteEvent, getEventById, getEventCategories, getOrganizerEvents, updateEvent, getAllEvents, adminApproveEvent, adminDisableEvent, adminEnableEvent, adminGetAllEvents, adminUpdateStatus } from "../controllers/event.controller.js";
+import { createEvent, deleteEvent, getEventById, getEventCategories, getOrganizerEvents, updateEvent, getAllEvents, adminApproveEvent, adminDisableEvent, adminEnableEvent, adminGetAllEvents, adminUpdateStatus, adminUnapproveEvent } from "../controllers/event.controller.js";
 import { verifyJwt } from "../middlewares/auth.middleware.js";
 import { upload } from "../middlewares/multer.middleware.js";
 
@@ -31,6 +31,7 @@ router.delete("/:eventId/organizer/:organizerId", verifyJwt, deleteEvent);
 
 // Admin actions
 router.put("/:eventId/admin/approve", verifyJwt, adminApproveEvent);
+router.put("/:eventId/admin/unapprove", verifyJwt, adminUnapproveEvent);
 router.put("/:eventId/admin/disable", verifyJwt, adminDisableEvent);
 router.put("/:eventId/admin/enable", verifyJwt, adminEnableEvent);
 router.put("/:eventId/admin/status", verifyJwt, adminUpdateStatus);

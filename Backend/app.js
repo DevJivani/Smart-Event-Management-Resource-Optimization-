@@ -3,6 +3,7 @@ import cors from "cors";
 import cookieparser from "cookie-parser";
 import userRouter from "./Routes/user.route.js";
 import eventRouter from "./Routes/event.route.js";
+import bookingRouter from "./Routes/booking.route.js";
 
 const app = express();
 
@@ -32,4 +33,6 @@ app.use("/api/v1/user", userRouter);
 // Event-related routes
 app.use("/api/v1/event", eventRouter);
 
+// Booking-related routes
+app.use("/api/v1/booking", bookingRouter);
 export { app };

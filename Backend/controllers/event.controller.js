@@ -2,20 +2,35 @@ import { log } from "console";
 import { Event } from "../models/event.model.js";
 import { EventCategory } from "../models/eventCategory.model.js";
 import { uploadToCloudinary } from "../utils/cloudinary.js";
+import { Ticket } from "../models/ticket.model.js";
 import fs from "fs/promises";
+
+const buildDateTime = (date, time, isEnd) => {
+    const d = new Date(date);
+    if (time && /^\d{1,2}:\d{2}$/.test(time)) {
+        const [h, m] = time.split(":").map(Number);
+        d.setHours(h, m, isEnd ? 59 : 0, isEnd ? 999 : 0);
+    } else {
+        d.setHours(isEnd ? 23 : 0, isEnd ? 59 : 0, isEnd ? 59 : 0, isEnd ? 999 : 0);
+    }
+    return d;
+};
+
+const computeEffectiveStatus = (event) => {
+    if (event.status === "cancelled") return "cancelled";
+    const start = buildDateTime(event.startDate, event.startTime, false);
+    const end = buildDateTime(event.endDate, event.endTime, true);
+    const now = new Date();
+    if (now < start) return "upcoming";
+    if (now > end) return "completed";
+    return "ongoing";
+};
 
 // Get all public events (for users)
 export const getAllEvents = async (req, res) => {
     try {
         const { status, categoryId, city } = req.query;
-        const statusFilter = Array.isArray(status)
-            ? { status: { $in: status } }
-            : status
-            ? { status }
-            : { status: { $in: ["upcoming", "ongoing"] } };
-
         const baseFilter = {
-            ...statusFilter,
             isApproved: true,
             isDisabled: false,
         };
@@ -27,10 +42,24 @@ export const getAllEvents = async (req, res) => {
             baseFilter.city = new RegExp(`^${city}$`, "i");
         }
 
-        const events = await Event.find(baseFilter)
+        const docs = await Event.find(baseFilter)
             .populate("categoryId", "name")
             .populate("createdBy", "name email")
             .sort({ startDate: 1, createdAt: -1 });
+
+        const eventsWithEffective = docs.map((e) => {
+            const obj = e.toObject();
+            obj.effectiveStatus = computeEffectiveStatus(e);
+            return obj;
+        });
+
+        let events = eventsWithEffective;
+        if (status) {
+            const statuses = Array.isArray(status) ? status : [status];
+            events = eventsWithEffective.filter((e) => statuses.includes(e.effectiveStatus));
+        } else {
+            events = eventsWithEffective.filter((e) => ["upcoming", "ongoing"].includes(e.effectiveStatus));
+        }
 
         return res.status(200).json({
             message: "Events fetched successfully",
@@ -58,10 +87,16 @@ export const getOrganizerEvents = async (req, res) => {
             });
         }
 
-        const events = await Event.find({ createdBy: organizerId })
+        const docs = await Event.find({ createdBy: organizerId })
             .populate("categoryId", "name")
             .populate("createdBy", "name email")
             .sort({ createdAt: -1 });
+
+        const events = docs.map((e) => {
+            const obj = e.toObject();
+            obj.effectiveStatus = computeEffectiveStatus(e);
+            return obj;
+        });
 
         return res.status(200).json({
             message: "Events fetched successfully",
@@ -85,6 +120,51 @@ export const createEvent = async (req, res) => {
         if (!organizerId || !title || !categoryId || !startDate || !endDate || !venue || !totalSeats) {
             return res.status(400).json({
                 message: "All required fields must be filled",
+                success: false
+            });
+        }
+
+        const paidVal = req.body.isPaid;
+        const isPaid =
+            paidVal === true ||
+            paidVal === "true" ||
+            paidVal === "on" ||
+            paidVal === "1" ||
+            paidVal === 1;
+
+        // Sanitize price input like "2,000" or "₹2000"
+        const rawPrice = req.body.price !== undefined ? String(req.body.price) : "";
+        const cleaned = rawPrice.replace(/,/g, "").replace(/[^\d.]/g, "");
+        const price = cleaned ? Number(cleaned) : NaN;
+        if (isPaid) {
+            if (!Number.isFinite(price) || price <= 0) {
+                return res.status(400).json({
+                    message: "Price must be provided for paid events and must be greater than 0",
+                    success: false
+                });
+            }
+        }
+
+        // Validate dates/times are not in the past and end is after start
+        try {
+            const start = buildDateTime(startDate, startTime, false);
+            const end = buildDateTime(endDate, endTime, true);
+            const now = new Date();
+            if (start < now) {
+                return res.status(400).json({
+                    message: "Start date/time cannot be in the past",
+                    success: false
+                });
+            }
+            if (end < start) {
+                return res.status(400).json({
+                    message: "End date/time must be after start date/time",
+                    success: false
+                });
+            }
+        } catch (e) {
+            return res.status(400).json({
+                message: "Invalid date or time format",
                 success: false
             });
         }
@@ -131,9 +211,20 @@ export const createEvent = async (req, res) => {
             bannerImage: bannerImageUrl,
             totalSeats,
             availableSeats: totalSeats,
-            isPaid: req.body.isPaid || false,
+            isPaid,
+            price: isPaid ? price : 0,
             status: "upcoming"
         });
+
+        if (isPaid) {
+            await Ticket.create({
+                eventId: event._id,
+                ticketType: "Regular",
+                price: price,
+                quantity: totalSeats,
+                soldQuantity: 0
+            });
+        }
 
         const populatedEvent = await Event.findById(event._id)
             .populate("categoryId", "name")
@@ -184,20 +275,52 @@ export const updateEvent = async (req, res) => {
             });
         }
 
-        // Update fields if provided
-        if (title) event.title = title;
-        if (description) event.description = description;
-        if (categoryId) event.categoryId = categoryId;
-        if (startDate) event.startDate = startDate;
-        if (endDate) event.endDate = endDate;
-        if (startTime) event.startTime = startTime;
-        if (endTime) event.endTime = endTime;
-        if (venue) event.venue = venue;
-        if (city) event.city = city;
+        // Validate date/time if provided and compute next values
+        const nextStartDate = startDate ?? event.startDate;
+        const nextEndDate = endDate ?? event.endDate;
+        const nextStartTime = startTime ?? event.startTime;
+        const nextEndTime = endTime ?? event.endTime;
+        if (startDate || endDate || startTime || endTime) {
+            try {
+                const start = buildDateTime(nextStartDate, nextStartTime, false);
+                const end = buildDateTime(nextEndDate, nextEndTime, true);
+                const now = new Date();
+                if (start < now) {
+                    return res.status(400).json({
+                        message: "Start date/time cannot be in the past",
+                        success: false
+                    });
+                }
+                if (end < start) {
+                    return res.status(400).json({
+                        message: "End date/time must be after start date/time",
+                        success: false
+                    });
+                }
+            } catch (e) {
+                return res.status(400).json({
+                    message: "Invalid date or time format",
+                    success: false
+                });
+            }
+        }
+
+        // Update fields if provided and track changes to require re-approval
+        let changed = false;
+        if (title && title !== event.title) { event.title = title; changed = true; }
+        if (description !== undefined && description !== event.description) { event.description = description; changed = true; }
+        if (categoryId && String(categoryId) !== String(event.categoryId)) { event.categoryId = categoryId; changed = true; }
+        if (startDate && String(startDate) !== String(event.startDate)) { event.startDate = startDate; changed = true; }
+        if (endDate && String(endDate) !== String(event.endDate)) { event.endDate = endDate; changed = true; }
+        if (startTime !== undefined && startTime !== event.startTime) { event.startTime = startTime; changed = true; }
+        if (endTime !== undefined && endTime !== event.endTime) { event.endTime = endTime; changed = true; }
+        if (venue && venue !== event.venue) { event.venue = venue; changed = true; }
+        if (city !== undefined && city !== event.city) { event.city = city; changed = true; }
         if (totalSeats) {
             const seatDifference = totalSeats - event.totalSeats;
             event.totalSeats = totalSeats;
             event.availableSeats = event.availableSeats + seatDifference;
+            if (seatDifference !== 0) changed = true;
         }
         if (status && ["upcoming", "ongoing", "completed", "cancelled"].includes(status)) {
             event.status = status;
@@ -217,7 +340,13 @@ export const updateEvent = async (req, res) => {
 
             if (uploadResult?.secure_url) {
                 event.bannerImage = uploadResult.secure_url;
+                changed = true;
             }
+        }
+
+        // Reset approval if important fields changed so admin can re-approve
+        if (changed) {
+            event.isApproved = false;
         }
 
         await event.save();
@@ -298,16 +427,19 @@ export const getEventById = async (req, res) => {
             });
         }
 
-        const event = await Event.findById(eventId)
+        const doc = await Event.findById(eventId)
             .populate("categoryId", "name")
             .populate("createdBy", "name email");
 
-        if (!event) {
+        if (!doc) {
             return res.status(404).json({
                 message: "Event not found",
                 success: false
             });
         }
+
+        const event = doc.toObject();
+        event.effectiveStatus = computeEffectiveStatus(doc);
 
         return res.status(200).json({
             message: "Event fetched successfully",
@@ -370,10 +502,15 @@ export const adminGetAllEvents = async (req, res) => {
         }
         if (categoryId) filter.categoryId = categoryId;
         if (city) filter.city = new RegExp(`^${city}$`, "i");
-        const events = await Event.find(filter)
+        const docs = await Event.find(filter)
             .populate("categoryId", "name")
             .populate("createdBy", "name email")
             .sort({ startDate: 1, createdAt: -1 });
+        const events = docs.map((e) => {
+            const obj = e.toObject();
+            obj.effectiveStatus = computeEffectiveStatus(e);
+            return obj;
+        });
         return res.status(200).json({
             message: "Admin events fetched successfully",
             events,
@@ -405,6 +542,17 @@ export const adminApproveEvent = async (req, res) => {
                 success: false
             });
         }
+        if (event.isApproved) {
+            const populatedEvent = await Event.findById(event._id)
+                .populate("categoryId", "name")
+                .populate("createdBy", "name email");
+            return res.status(200).json({
+                message: "Event already approved",
+                event: populatedEvent,
+                alreadyApproved: true,
+                success: true
+            });
+        }
         event.isApproved = true;
         await event.save();
         const populatedEvent = await Event.findById(event._id)
@@ -424,6 +572,52 @@ export const adminApproveEvent = async (req, res) => {
     }
 };
 
+// Admin: unapprove event
+export const adminUnapproveEvent = async (req, res) => {
+    try {
+        const { eventId } = req.params;
+        if (!req.user || req.user.role !== "admin") {
+            return res.status(403).json({
+                message: "Only admin can perform this action",
+                success: false
+            });
+        }
+        const event = await Event.findById(eventId);
+        if (!event) {
+            return res.status(404).json({
+                message: "Event not found",
+                success: false
+            });
+        }
+        if (!event.isApproved) {
+            const populatedEvent = await Event.findById(event._id)
+                .populate("categoryId", "name")
+                .populate("createdBy", "name email");
+            return res.status(200).json({
+                message: "Event already not approved",
+                event: populatedEvent,
+                alreadyUnapproved: true,
+                success: true
+            });
+        }
+        event.isApproved = false;
+        await event.save();
+        const populatedEvent = await Event.findById(event._id)
+            .populate("categoryId", "name")
+            .populate("createdBy", "name email");
+        return res.status(200).json({
+            message: "Event marked not approved",
+            event: populatedEvent,
+            success: true
+        });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            message: "Server error",
+            success: false
+        });
+    }
+};
 // Admin: disable event
 export const adminDisableEvent = async (req, res) => {
     try {
