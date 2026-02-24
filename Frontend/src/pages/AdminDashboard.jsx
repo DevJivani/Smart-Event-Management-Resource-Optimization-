@@ -13,17 +13,16 @@ const AdminDashboard = () => {
   const [filters, setFilters] = useState({
     status: "all",
     categoryId: "",
-    city: "",
+    searchQuery: "",
+    priceMin: "",
+    priceMax: ""
   });
-
-  if (!user) return <Navigate to="/login" replace />;
-  if (role !== "admin") return <Navigate to="/" replace />;
 
   const fetchCategories = async () => {
     try {
       const res = await axiosInstance.get("/api/v1/event/categories");
       if (res.data.success) setCategories(res.data.categories || []);
-    } catch (error) {
+    } catch {
       // ignore
     }
   };
@@ -38,7 +37,6 @@ const AdminDashboard = () => {
         params.append("status", filters.status);
       }
       if (filters.categoryId) params.append("categoryId", filters.categoryId);
-      if (filters.city) params.append("city", filters.city.trim());
       const response = await axiosInstance.get(`/api/v1/event/admin/all?${params.toString()}`);
       if (response.data.success) {
         setEvents(response.data.events || []);
@@ -56,7 +54,11 @@ const AdminDashboard = () => {
     try {
       const res = await axiosInstance.put(`/api/v1/event/${id}/admin/approve`);
       if (res.data.success) {
-        toast.success("Event approved");
+        if (res.data.alreadyApproved) {
+          toast("Event is already approved");
+        } else {
+          toast.success("Event approved");
+        }
         fetchEvents();
       }
     } catch (error) {
@@ -64,6 +66,21 @@ const AdminDashboard = () => {
     }
   };
 
+  const unapproveEvent = async (id) => {
+    try {
+      const res = await axiosInstance.put(`/api/v1/event/${id}/admin/unapprove`);
+      if (res.data.success) {
+        if (res.data.alreadyUnapproved) {
+          toast("Event is already not approved");
+        } else {
+          toast.success("Event marked not approved");
+        }
+        fetchEvents();
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to mark not approved");
+    }
+  };
   const disableEvent = async (id) => {
     try {
       const res = await axiosInstance.put(`/api/v1/event/${id}/admin/disable`);
@@ -107,7 +124,23 @@ const AdminDashboard = () => {
   useEffect(() => {
     fetchEvents();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.status, filters.categoryId, filters.city]);
+  }, [filters.status, filters.categoryId]);
+
+  if (!user) return <Navigate to="/login" replace />;
+  if (role !== "admin") return <Navigate to="/" replace />;
+
+  const filteredEvents = events.filter((e) => {
+    const q = filters.searchQuery.trim().toLowerCase();
+    const matchesQuery = q
+      ? ((e.title || "").toLowerCase().includes(q) ||
+         (e.city || "").toLowerCase().includes(q) ||
+         (e.venue || "").toLowerCase().includes(q))
+      : true;
+    const price = Number(e.price || 0);
+    const minOk = filters.priceMin !== "" ? price >= Number(filters.priceMin) : true;
+    const maxOk = filters.priceMax !== "" ? price <= Number(filters.priceMax) : true;
+    return matchesQuery && minOk && maxOk;
+  });
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -119,59 +152,83 @@ const AdminDashboard = () => {
         </div>
       </div>
       <main className="max-w-7xl mx-auto p-8">
-        <div className="bg-white rounded-xl shadow p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-              <select
-                value={filters.status}
-                onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value }))}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2"
-              >
-                <option value="all">All</option>
-                <option value="upcoming">Upcoming</option>
-                <option value="ongoing">Ongoing</option>
-                <option value="completed">Completed</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+          <aside className="md:col-span-1">
+            <div className="bg-white rounded-xl shadow p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <select
+                  value={filters.status}
+                  onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                >
+                  <option value="all">All</option>
+                  <option value="upcoming">Upcoming</option>
+                  <option value="ongoing">Ongoing</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                <select
+                  value={filters.categoryId}
+                  onChange={(e) => setFilters((f) => ({ ...f, categoryId: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                >
+                  <option value="">All</option>
+                  {categories.map((c) => (
+                    <option key={c._id} value={c._id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Price (₹)</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="number"
+                    min="0"
+                    value={filters.priceMin}
+                    onChange={(e) => setFilters((f) => ({ ...f, priceMin: e.target.value }))}
+                    placeholder="Min"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                  />
+                  <input
+                    type="number"
+                    min="0"
+                    value={filters.priceMax}
+                    onChange={(e) => setFilters((f) => ({ ...f, priceMax: e.target.value }))}
+                    placeholder="Max"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                  />
+                </div>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-              <select
-                value={filters.categoryId}
-                onChange={(e) => setFilters((f) => ({ ...f, categoryId: e.target.value }))}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2"
-              >
-                <option value="">All</option>
-                {categories.map((c) => (
-                  <option key={c._id} value={c._id}>{c.name}</option>
-                ))}
-              </select>
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+          </aside>
+          <section className="md:col-span-3">
+            <div className="bg-white rounded-xl shadow p-6">
               <input
                 type="text"
-                value={filters.city}
-                onChange={(e) => setFilters((f) => ({ ...f, city: e.target.value }))}
-                placeholder="Enter city name"
+                value={filters.searchQuery}
+                onChange={(e) => setFilters((f) => ({ ...f, searchQuery: e.target.value }))}
+                placeholder="Search by title or location"
                 className="w-full border border-gray-300 rounded-lg px-3 py-2"
               />
             </div>
-          </div>
+          </section>
         </div>
         {loading ? (
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           </div>
-        ) : events.length === 0 ? (
+        ) : filteredEvents.length === 0 ? (
           <div className="bg-white rounded-xl shadow p-12 text-center">
             <h3 className="text-lg font-medium text-gray-900">No events found</h3>
             <p className="mt-1 text-sm text-gray-500">Organizers have not created any events yet.</p>
           </div>
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {events.map((event) => (
+            {filteredEvents.map((event) => (
               <div key={event._id} className="bg-white rounded-xl shadow overflow-hidden">
                 <div className="w-full h-40">
                   {event.bannerImage ? (
@@ -237,10 +294,10 @@ const AdminDashboard = () => {
                   </div>
                   <div className="mt-6 flex gap-3">
                     <button
-                      onClick={() => approveEvent(event._id)}
-                      className="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm"
+                      onClick={() => (event.isApproved ? unapproveEvent(event._id) : approveEvent(event._id))}
+                      className={`px-3 py-2 rounded-lg text-white text-sm ${event.isApproved ? "bg-yellow-600 hover:bg-yellow-700" : "bg-emerald-600 hover:bg-emerald-700"}`}
                     >
-                      {event.isApproved ? "Approved" : "Approve"}
+                      {event.isApproved ? "Not Approved" : "Approve"}
                     </button>
                     <select
                       value={event.status}

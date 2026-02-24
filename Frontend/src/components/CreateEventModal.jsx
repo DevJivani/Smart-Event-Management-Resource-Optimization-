@@ -51,6 +51,20 @@ const CreateEventModal = ({ onClose, onSave }) => {
         } else if (type === "file") {
             setFormData({ ...formData, [name]: files[0] });
         } else {
+            // Guard dates: endDate should not be before startDate
+            if (name === "startDate") {
+                const todayStr = new Date().toISOString().split("T")[0];
+                const newStart = value && value < todayStr ? todayStr : value;
+                const newEnd = formData.endDate && formData.endDate < newStart ? newStart : formData.endDate;
+                setFormData({ ...formData, startDate: newStart, endDate: newEnd });
+                return;
+            }
+            if (name === "endDate") {
+                const minEnd = formData.startDate || new Date().toISOString().split("T")[0];
+                const endV = value && value < minEnd ? minEnd : value;
+                setFormData({ ...formData, endDate: endV });
+                return;
+            }
             setFormData({ ...formData, [name]: value });
         }
     };
@@ -70,6 +84,30 @@ const CreateEventModal = ({ onClose, onSave }) => {
             return;
         }
 
+        // Client-side date/time validation
+        const today = new Date();
+        const start = new Date(`${formData.startDate}T${formData.startTime || "00:00"}:00`);
+        const end = new Date(`${formData.endDate}T${formData.endTime || "23:59"}:00`);
+        if (start < today) {
+            toast.error("Start date/time cannot be in the past");
+            return;
+        }
+        if (end < start) {
+            toast.error("End date/time must be after start date/time");
+            return;
+        }
+        if (formData.startDate === formData.endDate && formData.startTime && formData.endTime && formData.endTime < formData.startTime) {
+            toast.error("End time must be after start time for the same day");
+            return;
+        }
+        if (formData.isPaid) {
+            const priceNum = Number(formData.price);
+            if (!priceNum || Number.isNaN(priceNum) || priceNum <= 0) {
+                toast.error("Please enter a valid price greater than 0 for paid events");
+                return;
+            }
+        }
+
         try {
             setLoading(true);
 
@@ -86,6 +124,7 @@ const CreateEventModal = ({ onClose, onSave }) => {
             data.append("city", formData.city);
             data.append("totalSeats", formData.totalSeats);
             data.append("isPaid", formData.isPaid);
+            data.append("price", formData.price || 0);
             if (formData.bannerImage) {
                 data.append("bannerImage", formData.bannerImage);
             }
@@ -198,6 +237,7 @@ const CreateEventModal = ({ onClose, onSave }) => {
                             name="startDate"
                             value={formData.startDate}
                             onChange={handleInputChange}
+                            min={new Date().toISOString().split("T")[0]}
                             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                         />
                     </div>
@@ -212,6 +252,7 @@ const CreateEventModal = ({ onClose, onSave }) => {
                             name="endDate"
                             value={formData.endDate}
                             onChange={handleInputChange}
+                            min={(formData.startDate || new Date().toISOString().split("T")[0])}
                             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                         />
                     </div>
@@ -226,6 +267,7 @@ const CreateEventModal = ({ onClose, onSave }) => {
                             name="startTime"
                             value={formData.startTime}
                             onChange={handleInputChange}
+                            min={formData.startDate === new Date().toISOString().split("T")[0] ? `${String(new Date().getHours()).padStart(2,"0")}:${String(new Date().getMinutes()).padStart(2,"0")}` : undefined}
                             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                         />
                     </div>
@@ -240,6 +282,10 @@ const CreateEventModal = ({ onClose, onSave }) => {
                             name="endTime"
                             value={formData.endTime}
                             onChange={handleInputChange}
+                            min={(formData.endDate && formData.startDate && formData.endDate === formData.startDate)
+                                ? (formData.startTime || (formData.startDate === new Date().toISOString().split("T")[0]
+                                    ? `${String(new Date().getHours()).padStart(2,"0")}:${String(new Date().getMinutes()).padStart(2,"0")}` : undefined))
+                                : undefined}
                             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                         />
                     </div>
@@ -302,6 +348,28 @@ const CreateEventModal = ({ onClose, onSave }) => {
                         <label className="ml-2 block text-sm text-gray-900">
                             Is this a paid event?
                         </label>
+                    </div>
+                    {/* Price */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-900">
+                            Price (per ticket) *
+                        </label>
+                        <input
+                            type="number"
+                            name="price"
+                            value={formData.price}
+                            onChange={handleInputChange}
+                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-400"
+                            placeholder="Enter ticket price"
+                            min="1"
+                            step="0.01"
+                            disabled={!formData.isPaid}
+                        />
+                        {!formData.isPaid && (
+                            <p className="text-xs text-gray-500 mt-1">
+                                Enable “Is Paid” to set the price.
+                            </p>
+                        )}
                     </div>
 
                     {/* Banner Image */}

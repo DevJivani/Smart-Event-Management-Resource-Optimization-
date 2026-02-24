@@ -5,6 +5,7 @@ import axios from "axios";
 import { toast } from "react-hot-toast";
 import Navbar from "../components/Navbar";
 import { setLoading, setUser } from "../redux/authSlice";
+import axiosInstance from "../utils/axios";
 
 const API_BASE = "http://localhost:3000/api/v1/user";
 const PENDING_IMAGE_KEY = "eventhub_pending_profile_image";
@@ -48,6 +49,8 @@ function Profile() {
   });
 
   const [avatarPreview, setAvatarPreview] = useState(null);
+  const [bookings, setBookings] = useState([]);
+  const [bookingLoading, setBookingLoading] = useState(false);
 
   // Guard
   useEffect(() => {
@@ -63,6 +66,23 @@ function Profile() {
     setProfileForm(initialForm);
     setOriginalProfileForm(initialForm);
   }, [user, navigate]);
+
+  useEffect(() => {
+    const fetchBookings = async () => {
+      try {
+        setBookingLoading(true);
+        const res = await axiosInstance.get("/api/v1/booking/my");
+        if (res.data.success) {
+          setBookings(res.data.bookings || []);
+        }
+      } catch {
+        // ignore
+      } finally {
+        setBookingLoading(false);
+      }
+    };
+    if (user) fetchBookings();
+  }, [user]);
 
   const handleProfileChange = (e) => {
     const { name, value } = e.target;
@@ -531,11 +551,65 @@ function Profile() {
             </button>
           </form>
         </section>
+
+        {/* My Events preview */}
+        <section className="bg-white rounded-2xl shadow-md p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">My Events</h2>
+              <p className="text-gray-500 text-sm">Recently booked tickets</p>
+            </div>
+          </div>
+          <div className="mt-4">
+            {bookingLoading ? (
+              <div className="flex justify-center items-center h-32">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+              </div>
+            ) : bookings.length === 0 ? (
+              <p className="text-sm text-gray-500">No bookings yet.</p>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2">
+                {bookings.slice(0, 4).map((b) => (
+                  <div key={b._id} className="border border-gray-200 rounded-xl p-4">
+                    <p className="text-sm font-medium text-gray-900">{b.eventId?.title}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {b.eventId?.venue}{b.eventId?.city ? `, ${b.eventId.city}` : ""}
+                    </p>
+                    <div className="mt-2 flex items-center justify-between">
+                      <span className="text-xs text-gray-600">
+                        {b.quantity} × ₹{Number((b.ticketId?.price ?? b.eventId?.price) || 0).toFixed(2)}
+                      </span>
+                      <span className={`px-2 py-0.5 text-xs rounded-full ${
+                        b.paymentStatus === "paid" ? "bg-emerald-100 text-emerald-800" : "bg-yellow-100 text-yellow-800"
+                      }`}>
+                        {b.paymentStatus}
+                      </span>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between">
+                      <span className="text-sm font-semibold">₹{Number(b.totalAmount || 0).toFixed(2)}</span>
+                      <button
+                        type="button"
+                        className="text-xs px-2 py-1 rounded-md bg-indigo-600 text-white"
+                        onClick={() => {
+                          const url = `${axiosInstance.defaults.baseURL}/api/v1/booking/${b._id}/invoice`;
+                          window.open(url, "_blank");
+                        }}
+                      >
+                        Invoice
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="mt-4">
+              <a href="/my-events" className="text-indigo-600 text-sm font-medium">View all</a>
+            </div>
+          </div>
+        </section>
       </main>
     </div>
   );
 }
 
 export default Profile;
-
-
