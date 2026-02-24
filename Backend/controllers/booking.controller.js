@@ -92,6 +92,60 @@ export const createPaidBooking = async (req, res) => {
   }
 };
 
+export const adminGetAllBookings = async (req, res) => {
+  try {
+    if (!req.user || req.user.role !== "admin") {
+      return res.status(403).json({ message: "Only admin can perform this action", success: false });
+    }
+    const list = await Booking.find({})
+      .sort({ createdAt: -1 })
+      .populate("eventId", "title venue city startDate startTime price")
+      .populate("ticketId", "ticketType price")
+      .populate("userId", "name email");
+    return res.status(200).json({
+      message: "All bookings fetched successfully",
+      bookings: list,
+      success: true
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ message: "Server error", success: false });
+  }
+};
+
+export const getOrganizerBookings = async (req, res) => {
+  try {
+    const { organizerId } = req.params;
+    if (!organizerId) {
+      return res.status(400).json({ message: "Organizer ID is required", success: false });
+    }
+    if (!req.user || (req.user.role !== "organizer" && req.user.role !== "admin")) {
+      return res.status(403).json({ message: "Unauthorized", success: false });
+    }
+    if (req.user.role === "organizer" && String(req.user._id) !== String(organizerId)) {
+      return res.status(403).json({ message: "You can only view your own bookings", success: false });
+    }
+    const events = await Event.find({ createdBy: organizerId }).select("_id");
+    const ids = events.map((e) => e._id);
+    if (ids.length === 0) {
+      return res.status(200).json({ message: "No bookings found", bookings: [], success: true });
+    }
+    const list = await Booking.find({ eventId: { $in: ids } })
+      .sort({ createdAt: -1 })
+      .populate("eventId", "title venue city startDate startTime price")
+      .populate("ticketId", "ticketType price")
+      .populate("userId", "name email");
+    return res.status(200).json({
+      message: "Organizer bookings fetched successfully",
+      bookings: list,
+      success: true
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ message: "Server error", success: false });
+  }
+};
+
 export const getMyBookings = async (req, res) => {
   try {
     const user = req.user;
