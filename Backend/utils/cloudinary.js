@@ -1,5 +1,5 @@
 import { v2 as cloudinary } from "cloudinary";
-
+import fs from "fs";
 // Configure cloudinary lazily - only when first used
 let isConfigured = false;
 
@@ -34,6 +34,14 @@ export async function uploadToCloudinary(filePath, { folder } = {}) {
     folder: folder || "eventhub",
     resource_type: "image",
   });
+
+  // Optionally delete the local file after upload
+  fs.unlink(filePath, (err) => {
+    if (err) {
+      console.error("Error deleting local file:", err);
+    }
+  });
+
 
   return result;
 }
