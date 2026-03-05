@@ -56,6 +56,8 @@ import OrganizerBookings from './pages/OrganizerBookings.jsx'
 import BookingPage from './pages/BookingPage'
 import MyEvents from './pages/MyEvents'
 import Home from './components/Home'
+import EventDetails from './pages/EventDetails.jsx'
+import AdminBookingDetails from './pages/AdminBookingDetails.jsx'
 
 const router = createBrowserRouter([
   {
@@ -87,12 +89,20 @@ const router = createBrowserRouter([
     element: <BookingPage />
   },
   {
+    path: '/event/:eventId',
+    element: <EventDetails/>
+  },
+  {
     path: '/admin',
     element: <AdminDashboard />
   },
   {
     path: '/admin/bookings',
     element: <AdminBookingsPage />
+  },
+  {
+    path: '/admin/bookings/:bookingId',
+    element: <AdminBookingDetails />
   },
   {
     path: '/organizer/bookings',

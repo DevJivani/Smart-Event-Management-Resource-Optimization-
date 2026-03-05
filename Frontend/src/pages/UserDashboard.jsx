@@ -4,6 +4,8 @@ import { Navigate, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import axiosInstance from "../utils/axios";
 import toast from "react-hot-toast";
+import ReviewWidget from "../components/ReviewWidget.jsx";
+import AverageRatingBadge from "../components/AverageRatingBadge.jsx";
 
 const UserDashboard = () => {
   const { user } = useSelector((state) => state.auth);
@@ -154,7 +156,8 @@ const UserDashboard = () => {
               {filteredEvents.map((event) => (
                 <div
                   key={event._id}
-                  className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow overflow-hidden"
+                  className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow overflow-hidden cursor-pointer"
+                  onClick={() => navigate(`/event/${event._id}`)}
                 >
                   <div className="w-full h-40">
                     {event.bannerImage ? (
@@ -182,24 +185,14 @@ const UserDashboard = () => {
               )}
                   </div>
                   <div className="p-6">
-                    <h3 className="text-lg font-bold text-gray-900">{event.title}</h3>
-                    <p className="text-sm text-gray-600 mt-1">
-                      {event.description?.substring(0, 100)}
-                      {event.description?.length > 100 ? "..." : ""}
-                    </p>
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-bold text-gray-900">{event.title}</h3>
+                      <AverageRatingBadge eventId={event._id} />
+                    </div>
+                    {/* simplified card: only date, price, status, book */}
                     <div className="mt-4 space-y-2">
                       <p className="text-sm">
                         <span className="font-semibold">Date:</span> {formatDate(event.startDate)}
-                      </p>
-                      <p className="text-sm">
-                        <span className="font-semibold">Time:</span> {event.startTime || "TBA"}
-                      </p>
-                      <p className="text-sm">
-                        <span className="font-semibold">Location:</span> {event.venue}
-                        {event.city && `, ${event.city}`}
-                      </p>
-                      <p className="text-sm">
-                        <span className="font-semibold">Seats:</span> {event.availableSeats} / {event.totalSeats}
                       </p>
                       <p className="text-sm">
                         <span className="font-semibold">Price:</span>{" "}
@@ -218,7 +211,8 @@ const UserDashboard = () => {
                         </div>
                         <button
                           className="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             navigate(`/book/${event._id}`);
                           }}
                         >
@@ -226,6 +220,7 @@ const UserDashboard = () => {
                         </button>
                       </div>
                     )}
+                  {/* removed review toggle from card to keep minimal */}
                   </div>
                 </div>
               ))}

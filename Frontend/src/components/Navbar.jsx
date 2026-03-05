@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
+import axiosInstance from "../utils/axios";
 import { setUser, setLoading } from "../redux/authSlice";
 
 const Navbar = () => {
@@ -11,6 +12,8 @@ const Navbar = () => {
   const { user } = useSelector((state) => state.auth);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
 
   const handleLogout = async () => {
     dispatch(setLoading(true));
@@ -29,6 +32,65 @@ const Navbar = () => {
       setIsProfileOpen(false);
     }
   };
+
+  const fetchNotifications = async () => {
+    try {
+      if (!user) return;
+      const res = await axiosInstance.get("/api/v1/notification/my");
+      if (res.data?.success) {
+        setNotifications(res.data.notifications || []);
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
+
+  const markRead = async (id) => {
+    try {
+      const res = await axiosInstance.patch(`/api/v1/notification/${id}/read`);
+      if (res.data?.success) {
+        setNotifications((list) =>
+          list.map((n) => (String(n._id) === String(id) ? { ...n, isRead: true } : n))
+        );
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const markAllRead = async () => {
+    try {
+      const res = await axiosInstance.patch(`/api/v1/notification/read-all`);
+      if (res.data?.success) {
+        setNotifications((list) => list.map((n) => ({ ...n, isRead: true })));
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  // Lightweight fetch on open
+  if (isNotifOpen && notifications.length === 0 && user) {
+    void fetchNotifications();
+  }
+  useEffect(() => {
+    if (!user) return;
+    fetchNotifications();
+    const onFocus = () => fetchNotifications();
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") fetchNotifications();
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
+    const intervalId = setInterval(fetchNotifications, 15000);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
+      clearInterval(intervalId);
+    };
+  }, [user]);
 
   const navLinks =
     user?.role === "organizer"
@@ -103,6 +165,67 @@ const Navbar = () => {
                 </Link>
               </>
             ) : (
+              <>
+              <div className="relative">
+                <button
+                  onClick={() => {
+                    setIsNotifOpen((o) => !o);
+                    setIsProfileOpen(false);
+                    if (!isNotifOpen) fetchNotifications();
+                  }}
+                  className="p-2 rounded-full hover:bg-gray-50 relative"
+                  title="Notifications"
+                >
+                  <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                  </svg>
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
+                {isNotifOpen && (
+                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-100 py-2">
+                    <div className="flex items-center justify-between px-4 py-2 border-b">
+                      <span className="text-sm font-semibold text-gray-900">Notifications</span>
+                      <button
+                        className="text-xs px-2 py-1 rounded border border-gray-300"
+                        onClick={markAllRead}
+                      >
+                        Mark all read
+                      </button>
+                    </div>
+                    <div className="max-h-80 overflow-auto">
+                      {(notifications || []).length === 0 ? (
+                        <div className="px-4 py-6 text-sm text-gray-600">No notifications</div>
+                      ) : (
+                        notifications.map((n) => (
+                          <div key={n._id} className="px-4 py-3 border-b last:border-b-0 hover:bg-gray-50">
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <p className="text-sm font-semibold text-gray-900">{n.title}</p>
+                                <p className="text-xs text-gray-600">{n.message}</p>
+                                <p className="text-[11px] text-gray-400 mt-1">
+                                  {new Date(n.createdAt).toLocaleDateString()} {new Date(n.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                </p>
+                              </div>
+                              {!n.isRead && (
+                                <button
+                                  className="text-xs px-2 py-1 rounded border border-gray-300"
+                                  onClick={() => markRead(n._id)}
+                                >
+                                  Mark read
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
               <div className="relative">
                 <button
                   onClick={() => setIsProfileOpen(!isProfileOpen)}
@@ -186,6 +309,7 @@ const Navbar = () => {
                   </div>
                 )}
               </div>
+              </>
             )}
           </div>
 

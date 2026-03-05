@@ -6,6 +6,8 @@ import toast from "react-hot-toast";
 import CreateEventModal from "../components/CreateEventModal";
 import EditEventModal from "../components/EditEventModal";
 import Navbar from "../components/Navbar";
+import ReviewWidget from "../components/ReviewWidget.jsx";
+import AverageRatingBadge from "../components/AverageRatingBadge.jsx";
 
 const OrganizerDashboard = () => {
     const { user, role } = useSelector((state) => state.auth);
@@ -20,6 +22,7 @@ const OrganizerDashboard = () => {
         priceMin: "",
         priceMax: ""
     });
+    const [notifications, setNotifications] = useState([]);
     const location = useLocation();
     useEffect(() => {
         const params = new URLSearchParams(location.search);
@@ -49,6 +52,20 @@ const OrganizerDashboard = () => {
         };
         fetchEvents();
     }, [user?._id]);
+
+    useEffect(() => {
+        const fetchNotifications = async () => {
+            try {
+                const res = await axiosInstance.get("/api/v1/notification/my");
+                if (res.data?.success) {
+                    setNotifications(res.data.notifications || []);
+                }
+            } catch {
+                // ignore
+            }
+        };
+        fetchNotifications();
+    }, []);
 
     // Handle edit event
     const handleEditEvent = (event) => {
@@ -264,6 +281,36 @@ const OrganizerDashboard = () => {
                             <h2 className="text-xl font-bold text-gray-900">My Events</h2>
                             <span className="text-sm text-gray-600">{filteredEvents.length} results</span>
                         </div>
+                        <div className="grid md:grid-cols-2 gap-6 mb-6">
+                            <div className="bg-white rounded-xl shadow p-6">
+                                <div className="flex items-center justify-between mb-2">
+                                    <h3 className="text-lg font-semibold text-gray-900">Notifications</h3>
+                                    <span className="text-xs text-gray-500">{notifications.filter((n) => !n.isRead).length} unread</span>
+                                </div>
+                                <div className="space-y-3 max-h-64 overflow-auto">
+                                    {(notifications || []).length === 0 ? (
+                                        <div className="text-sm text-gray-600">No notifications</div>
+                                    ) : (
+                                        notifications.slice(0, 8).map((n) => (
+                                            <div key={n._id} className="border rounded-lg p-3">
+                                                <div className="flex items-start justify-between">
+                                                    <div>
+                                                        <p className="text-sm font-semibold text-gray-900">{n.title}</p>
+                                                        <p className="text-xs text-gray-600">{n.message}</p>
+                                                    </div>
+                                                    <span className={`text-xs px-2 py-0.5 rounded ${n.isRead ? "bg-gray-100 text-gray-700" : "bg-emerald-100 text-emerald-700"}`}>
+                                                        {n.isRead ? "Read" : "New"}
+                                                    </span>
+                                                </div>
+                                                <p className="text-[11px] text-gray-400 mt-1">
+                                                    {new Date(n.createdAt).toLocaleDateString()} {new Date(n.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                                </p>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+                        </div>
                         {loading ? (
                             <div className="flex justify-center items-center h-64">
                                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -332,9 +379,12 @@ const OrganizerDashboard = () => {
                                             <div className="flex-1 p-5">
                                                 <div className="flex justify-between items-start">
                                                     <div className="flex-1">
-                                                        <h3 className="text-lg font-bold text-gray-900">
-                                                            {event.title}
-                                                        </h3>
+                                                        <div className="flex items-center justify-between">
+                                                            <h3 className="text-lg font-bold text-gray-900">
+                                                                {event.title}
+                                                            </h3>
+                                                            <AverageRatingBadge eventId={event._id} />
+                                                        </div>
                                                         <p className="text-sm text-gray-600 mt-1">
                                                             {event.description?.substring(0, 90)}
                                                             {event.description?.length > 90 ? "..." : ""}
@@ -423,6 +473,10 @@ const OrganizerDashboard = () => {
                                                             Delete
                                                         </button>
                                                     </div>
+                                                </div>
+                                                <div className="mt-6">
+                    <h4 className="text-sm font-semibold text-gray-900 mb-2">Latest Reviews</h4>
+                    <ReviewWidget eventId={event._id} canReply />
                                                 </div>
                                             </div>
                                         </div>

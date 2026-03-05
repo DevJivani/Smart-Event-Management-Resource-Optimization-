@@ -4,6 +4,7 @@ import { Navigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import axiosInstance from "../utils/axios";
 import toast from "react-hot-toast";
+import StatusBadge from "../components/StatusBadge.jsx";
 
 const fmtCurrency = (n) => Number(n || 0).toFixed(2);
 const fmtDateTime = (d) => {
@@ -20,6 +21,20 @@ const AdminBookingsPage = () => {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("all");
   const [source, setSource] = useState("");
+  const [sortBy, setSortBy] = useState("createdAt");
+  const [sortDir, setSortDir] = useState("desc");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [showCols, setShowCols] = useState({
+    event: true,
+    user: true,
+    quantity: true,
+    unitPrice: true,
+    total: true,
+    createdAt: true,
+    paymentStatus: true,
+    actions: true,
+  });
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -104,6 +119,61 @@ const AdminBookingsPage = () => {
     });
   }, [rows, query, status]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [filtered, pageSize, sortBy, sortDir]);
+
+  const sorted = useMemo(() => {
+    const arr = [...filtered];
+    const sb = (sortBy || "").toLowerCase();
+    const sd = (sortDir || "asc").toLowerCase();
+    const factor = sd === "desc" ? -1 : 1;
+    arr.sort((a, b) => {
+      const va = a[sb];
+      const vb = b[sb];
+      if (sb === "quantity" || sb === "unitPrice" || sb === "total") {
+        return (Number(va || 0) - Number(vb || 0)) * factor;
+      }
+      if (sb === "createdAt") {
+        const ta = new Date(va || 0).getTime();
+        const tb = new Date(vb || 0).getTime();
+        return (ta - tb) * factor;
+      }
+      const sa = (va || "").toString().toLowerCase();
+      const sbv = (vb || "").toString().toLowerCase();
+      if (sa < sbv) return -1 * factor;
+      if (sa > sbv) return 1 * factor;
+      return 0;
+    });
+    return arr;
+  }, [filtered, sortBy, sortDir]);
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
+  const pageRows = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return sorted.slice(start, start + pageSize);
+  }, [sorted, page, pageSize]);
+
+  const headerButton = (label, key) => (
+    <button
+      className="flex items-center gap-1 group"
+      onClick={() => {
+        if (sortBy === key) {
+          setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+        } else {
+          setSortBy(key);
+          setSortDir("asc");
+        }
+      }}
+      title={`Sort by ${label}`}
+    >
+      <span className="text-left">{label}</span>
+      <span className="text-gray-400 group-hover:text-gray-600 text-xs">
+        {sortBy === key ? (sortDir === "asc" ? "▲" : "▼") : "↕"}
+      </span>
+    </button>
+  );
+
   if (!user) return <Navigate to="/login" replace />;
   if (role !== "admin") return <Navigate to="/" replace />;
 
@@ -156,7 +226,74 @@ const AdminBookingsPage = () => {
             <span className="font-medium text-gray-700">{filtered.length}</span> records
             {source ? <span> • Source: {source}</span> : null}
           </div>
+          <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="text-sm text-gray-600">Columns:</span>
+              {[
+                ["event", "Event"],
+                ["user", "User"],
+                ["quantity", "Qty"],
+                ["unitPrice", "Unit Price"],
+                ["total", "Total"],
+                ["createdAt", "Booked At"],
+                ["paymentStatus", "Payment"],
+                ["actions", "Actions"],
+              ].map(([key, label]) => (
+                <label key={key} className="flex items-center gap-1 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={showCols[key]}
+                    onChange={(e) => setShowCols((c) => ({ ...c, [key]: e.target.checked }))}
+                  />
+                  <span>{label}</span>
+                </label>
+              ))}
+            </div>
+            <div>
+              <button
+                className="px-4 py-2 rounded-lg bg-gray-900 text-white hover:bg-black text-sm"
+                onClick={() => {
+                  const cols = [];
+                  if (showCols.event) cols.push("Event");
+                  if (showCols.user) {
+                    cols.push("User Name");
+                    cols.push("User Email");
+                  }
+                  if (showCols.quantity) cols.push("Qty");
+                  if (showCols.unitPrice) cols.push("Unit Price");
+                  if (showCols.total) cols.push("Total");
+                  if (showCols.createdAt) cols.push("Booked At");
+                  if (showCols.paymentStatus) cols.push("Payment");
+                  const lines = [cols.join(",")];
+                  sorted.forEach((r) => {
+                    const vals = [];
+                    if (showCols.event) vals.push(JSON.stringify(r.eventTitle ?? ""));
+                    if (showCols.user) {
+                      vals.push(JSON.stringify(r.userName ?? ""));
+                      vals.push(JSON.stringify(r.userEmail ?? ""));
+                    }
+                    if (showCols.quantity) vals.push(String(r.quantity ?? ""));
+                    if (showCols.unitPrice) vals.push(String(fmtCurrency(r.unitPrice ?? 0)));
+                    if (showCols.total) vals.push(String(fmtCurrency(r.total ?? 0)));
+                    if (showCols.createdAt) vals.push(JSON.stringify(fmtDateTime(r.createdAt)));
+                    if (showCols.paymentStatus) vals.push(JSON.stringify(r.paymentStatus ?? ""));
+                    lines.push(vals.join(","));
+                  });
+                  const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = "bookings.csv";
+                  a.click();
+                  setTimeout(() => URL.revokeObjectURL(url), 1000);
+                }}
+              >
+                Export CSV
+              </button>
+            </div>
+          </div>
         </div>
+        <StatsBar rows={filtered} />
 
         {loading ? (
           <div className="flex justify-center items-center h-64">
@@ -172,61 +309,123 @@ const AdminBookingsPage = () => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Event</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qty</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Price</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Booked At</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment</th>
-                  <th className="px-6 py-3"></th>
+                  {showCols.event && (
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{headerButton("Event", "eventTitle")}</th>
+                  )}
+                  {showCols.user && (
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{headerButton("User", "userName")}</th>
+                  )}
+                  {showCols.quantity && (
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{headerButton("Qty", "quantity")}</th>
+                  )}
+                  {showCols.unitPrice && (
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{headerButton("Unit Price", "unitPrice")}</th>
+                  )}
+                  {showCols.total && (
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{headerButton("Total", "total")}</th>
+                  )}
+                  {showCols.createdAt && (
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{headerButton("Booked At", "createdAt")}</th>
+                  )}
+                  {showCols.paymentStatus && (
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{headerButton("Payment", "paymentStatus")}</th>
+                  )}
+                  {showCols.actions && <th className="px-6 py-3"></th>}
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
-                {filtered.map((r) => (
+                {pageRows.map((r) => (
                   <tr key={r.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <div className="text-sm font-semibold text-gray-900">{r.eventTitle}</div>
-                      <div className="text-xs text-gray-500">
-                        {r.venue}{r.city ? `, ${r.city}` : ""}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">{r.userName}</div>
-                      <div className="text-xs text-gray-500">{r.userEmail}</div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{r.quantity}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">₹{fmtCurrency(r.unitPrice)}</td>
-                    <td className="px-6 py-4 text-sm font-semibold text-gray-900">₹{fmtCurrency(r.total)}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{fmtDateTime(r.createdAt)}</td>
-                    <td className="px-6 py-4">
-                      <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                        (r.paymentStatus || "").toLowerCase() === "paid"
-                          ? "bg-emerald-100 text-emerald-800"
-                          : (r.paymentStatus || "").toLowerCase() === "failed"
-                          ? "bg-red-100 text-red-700"
-                          : "bg-yellow-100 text-yellow-800"
-                      }`}>
-                        {r.paymentStatus || "pending"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      {r.id && (
-                        <button
-                          className="text-xs px-3 py-1.5 rounded bg-indigo-600 text-white hover:bg-indigo-700"
-                          onClick={() => {
-                            const url = `${axiosInstance.defaults.baseURL}/api/v1/booking/${r.id}/invoice`;
-                            window.open(url, "_blank");
-                          }}
-                        >
-                          Invoice
-                        </button>
-                      )}
-                    </td>
+                    {showCols.event && (
+                      <td className="px-6 py-4">
+                        <div className="text-sm font-semibold text-gray-900">{r.eventTitle}</div>
+                        <div className="text-xs text-gray-500">
+                          {r.venue}{r.city ? `, ${r.city}` : ""}
+                        </div>
+                      </td>
+                    )}
+                    {showCols.user && (
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900">{r.userName}</div>
+                        <div className="text-xs text-gray-500">{r.userEmail}</div>
+                      </td>
+                    )}
+                    {showCols.quantity && (
+                      <td className="px-6 py-4 text-sm text-gray-900">{r.quantity}</td>
+                    )}
+                    {showCols.unitPrice && (
+                      <td className="px-6 py-4 text-sm text-gray-900">₹{fmtCurrency(r.unitPrice)}</td>
+                    )}
+                    {showCols.total && (
+                      <td className="px-6 py-4 text-sm font-semibold text-gray-900">₹{fmtCurrency(r.total)}</td>
+                    )}
+                    {showCols.createdAt && (
+                      <td className="px-6 py-4 text-sm text-gray-900">{fmtDateTime(r.createdAt)}</td>
+                    )}
+                    {showCols.paymentStatus && (
+                      <td className="px-6 py-4">
+                        <StatusBadge value={r.paymentStatus} />
+                      </td>
+                    )}
+                    {showCols.actions && (
+                      <td className="px-6 py-4">
+                        <div className="flex gap-2">
+                          {r.id && (
+                            <>
+                              <button
+                                className="text-xs px-3 py-1.5 rounded bg-indigo-600 text-white hover:bg-indigo-700"
+                                onClick={() => {
+                                  const url = `${axiosInstance.defaults.baseURL}/api/v1/booking/${r.id}/invoice`;
+                                  window.open(url, "_blank");
+                                }}
+                              >
+                                Invoice
+                              </button>
+                              <a
+                                href={`/admin/bookings/${r.id}`}
+                                className="text-xs px-3 py-1.5 rounded bg-gray-900 text-white hover:bg-black"
+                              >
+                                View Details
+                              </a>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
             </table>
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-6 py-4">
+              <div className="text-sm text-gray-600">
+                Page {page} of {totalPages}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  className="px-3 py-1.5 rounded border border-gray-300 text-sm"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                >
+                  Previous
+                </button>
+                <button
+                  className="px-3 py-1.5 rounded border border-gray-300 text-sm"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                >
+                  Next
+                </button>
+                <select
+                  value={pageSize}
+                  onChange={(e) => setPageSize(Number(e.target.value))}
+                  className="ml-2 border border-gray-300 rounded px-2 py-1 text-sm"
+                >
+                  <option value={10}>10 / page</option>
+                  <option value={20}>20 / page</option>
+                  <option value={50}>50 / page</option>
+                </select>
+              </div>
+            </div>
           </div>
         )}
       </main>
@@ -235,3 +434,36 @@ const AdminBookingsPage = () => {
 };
 
 export default AdminBookingsPage;
+
+function StatsBar({ rows }) {
+  const total = rows.length;
+  const paid = rows.filter((r) => (r.paymentStatus || "").toLowerCase() === "paid");
+  const pending = rows.filter((r) => (r.paymentStatus || "").toLowerCase() === "pending");
+  const revenue = paid.reduce((sum, r) => sum + Number(r.total || 0), 0);
+  return (
+    <div className="grid sm:grid-cols-4 gap-4 mb-6">
+      <div className="bg-white rounded-xl shadow p-4">
+        <p className="text-sm text-gray-500">Total Bookings</p>
+        <p className="text-2xl font-semibold text-gray-900">{total}</p>
+      </div>
+      <div className="bg-white rounded-xl shadow p-4">
+        <p className="text-sm text-gray-500">Paid</p>
+        <div className="flex items-center justify-between">
+          <p className="text-2xl font-semibold text-gray-900">{paid.length}</p>
+          <StatusBadge value="paid" size="xs" />
+        </div>
+      </div>
+      <div className="bg-white rounded-xl shadow p-4">
+        <p className="text-sm text-gray-500">Pending</p>
+        <div className="flex items-center justify-between">
+          <p className="text-2xl font-semibold text-gray-900">{pending.length}</p>
+          <StatusBadge value="pending" size="xs" />
+        </div>
+      </div>
+      <div className="bg-white rounded-xl shadow p-4">
+        <p className="text-sm text-gray-500">Revenue (Paid)</p>
+        <p className="text-2xl font-semibold text-gray-900">₹{fmtCurrency(revenue)}</p>
+      </div>
+    </div>
+  );
+}

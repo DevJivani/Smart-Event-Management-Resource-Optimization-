@@ -4,6 +4,8 @@ import { Navigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import axiosInstance from "../utils/axios";
 import toast from "react-hot-toast";
+import StatusBadge from "../components/StatusBadge.jsx";
+import ReviewWidget from "../components/ReviewWidget.jsx";
 
 const AdminDashboard = () => {
   const { user, role } = useSelector((state) => state.auth);
@@ -17,6 +19,7 @@ const AdminDashboard = () => {
     priceMin: "",
     priceMax: ""
   });
+  const [recentReviews, setRecentReviews] = useState([]);
 
   const fetchCategories = async () => {
     try {
@@ -47,6 +50,38 @@ const AdminDashboard = () => {
       toast.error(error.response?.data?.message || "Error fetching events");
     } finally {
       setLoading(false);
+    }
+  };
+  const fetchRecentReviews = async () => {
+    try {
+      const endpoints = [
+        "/api/v1/review/admin/all",
+        "/api/v1/admin/reviews",
+        "/api/v1/admin/review/all",
+        "/api/v1/review/all",
+      ];
+      for (const ep of endpoints) {
+        try {
+          const res = await axiosInstance.get(ep);
+          if (res.data?.success) {
+            const data =
+              res.data.reviews ||
+              res.data.data ||
+              res.data.items ||
+              res.data.results ||
+              res.data.result ||
+              [];
+            setRecentReviews(
+              [...data].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)).slice(0, 6)
+            );
+            break;
+          }
+        } catch {
+          void 0;
+        }
+      }
+    } catch {
+      setRecentReviews([]);
     }
   };
 
@@ -119,6 +154,7 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     fetchCategories();
+    fetchRecentReviews();
   }, []);
 
   useEffect(() => {
@@ -150,8 +186,92 @@ const AdminDashboard = () => {
           <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
           <p className="text-gray-600 mt-2">Welcome, {user?.name}. Manage the platform.</p>
         </div>
+        <div className="grid lg:grid-cols-2 gap-6 mb-6">
+          <div className="bg-white rounded-xl shadow p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Reviews</h2>
+            <div className="space-y-3">
+              {(recentReviews || []).map((r) => {
+                const evt = r.eventId || {};
+                const usr = r.userId || {};
+                const created = new Date(r.createdAt || Date.now());
+                return (
+                  <div key={r._id || r.id} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 text-sm font-semibold">
+                        {(usr.name || "-").toString().charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="text-sm font-semibold text-gray-900">{evt.title || "-"}</div>
+                        <div className="text-xs text-gray-600">{usr.email || ""}</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-yellow-500">{("★".repeat(Number(r.rating || 0)) + "☆".repeat(5 - Number(r.rating || 0))).slice(0,5)}</div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {created.toLocaleDateString()} {created.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </div>
+                      <div className="mt-2 flex items-center gap-2">
+                        <span className={`text-xs px-2 py-0.5 rounded ${r.visible ? "bg-emerald-100 text-emerald-700" : "bg-gray-200 text-gray-700"}`}>
+                          {r.visible ? "Visible" : "Hidden"}
+                        </span>
+                        <button
+                          className="text-xs px-2 py-1 rounded border border-gray-300"
+                          onClick={async () => {
+                            try {
+                              const url = r.visible ? `/api/v1/review/${r._id}/hide` : `/api/v1/review/${r._id}/approve`;
+                              const res = await axiosInstance.patch(url);
+                              if (res.data?.success) {
+                                const idx = (recentReviews || []).findIndex((x) => (x._id || x.id) === (r._id || r.id));
+                                if (idx >= 0) {
+                                  const next = [...recentReviews];
+                                  next[idx] = { ...next[idx], visible: res.data.review?.visible ?? next[idx].visible };
+                                  setRecentReviews(next);
+                                }
+                              }
+                            } catch {
+                              // ignore
+                            }
+                          }}
+                        >
+                          {r.visible ? "Hide" : "Approve"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              {(recentReviews || []).length === 0 && <div className="text-sm text-gray-500">No reviews yet.</div>}
+            </div>
+          </div>
+          <div className="bg-white rounded-xl shadow p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Sample Event Reviews</h2>
+            {events[0] ? (
+              <ReviewWidget eventId={events[0]._id} />
+            ) : (
+              <div className="text-sm text-gray-500">No events to preview reviews.</div>
+            )}
+          </div>
+        </div>
       </div>
       <main className="max-w-7xl mx-auto p-8">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="bg-white rounded-xl shadow p-4">
+            <p className="text-sm text-gray-500">Total Events</p>
+            <p className="text-2xl font-semibold text-gray-900">{events.length}</p>
+          </div>
+          <div className="bg-white rounded-xl shadow p-4">
+            <p className="text-sm text-gray-500">Upcoming</p>
+            <p className="text-2xl font-semibold text-gray-900">{events.filter((e) => e.status === "upcoming").length}</p>
+          </div>
+          <div className="bg-white rounded-xl shadow p-4">
+            <p className="text-sm text-gray-500">Ongoing</p>
+            <p className="text-2xl font-semibold text-gray-900">{events.filter((e) => e.status === "ongoing").length}</p>
+          </div>
+          <div className="bg-white rounded-xl shadow p-4">
+            <p className="text-sm text-gray-500">Categories</p>
+            <p className="text-2xl font-semibold text-gray-900">{categories.length}</p>
+          </div>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
           <aside className="md:col-span-1">
             <div className="bg-white rounded-xl shadow p-6 space-y-4">
