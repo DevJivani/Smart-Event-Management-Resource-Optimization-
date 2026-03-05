@@ -146,6 +146,39 @@ export const getOrganizerBookings = async (req, res) => {
   }
 };
 
+export const adminGetBookingById = async (req, res) => {
+  try {
+    if (!req.user || req.user.role !== "admin") {
+      return res.status(403).json({ message: "Only admin can perform this action", success: false });
+    }
+    const { bookingId } = req.params;
+    if (!bookingId) {
+      return res.status(400).json({ message: "Booking ID is required", success: false });
+    }
+    const booking = await Booking.findById(bookingId)
+      .populate({
+        path: "eventId",
+        select: "title description venue city startDate endDate startTime endTime price createdBy",
+        populate: { path: "createdBy", select: "name email phone role" }
+      })
+      .populate("ticketId", "ticketType price")
+      .populate("userId", "name email phone role");
+    if (!booking) {
+      return res.status(404).json({ message: "Booking not found", success: false });
+    }
+    const payments = await Payment.find({ bookingId: booking._id }).sort({ createdAt: -1 });
+    return res.status(200).json({
+      message: "Booking fetched successfully",
+      booking,
+      payments,
+      success: true
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ message: "Server error", success: false });
+  }
+};
+
 export const getMyBookings = async (req, res) => {
   try {
     const user = req.user;

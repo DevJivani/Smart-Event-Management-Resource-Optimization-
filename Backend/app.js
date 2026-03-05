@@ -4,6 +4,8 @@ import cookieparser from "cookie-parser";
 import userRouter from "./Routes/user.route.js";
 import eventRouter from "./Routes/event.route.js";
 import bookingRouter from "./Routes/booking.route.js";
+import reviewRouter from "./Routes/review.route.js";
+import notificationRouter from "./Routes/notification.route.js";
 
 const app = express();
 
@@ -35,4 +37,8 @@ app.use("/api/v1/event", eventRouter);
 
 // Booking-related routes
 app.use("/api/v1/booking", bookingRouter);
+// Review-related routes
+app.use("/api/v1/review", reviewRouter);
+// Notification-related routes
+app.use("/api/v1/notification", notificationRouter);
 export { app };
