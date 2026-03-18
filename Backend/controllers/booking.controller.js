@@ -2,12 +2,13 @@ import { Booking } from "../models/booking.model.js";
 import { Event } from "../models/event.model.js";
 import { Ticket } from "../models/ticket.model.js";
 import { Payment } from "../models/payment.model.js";
+import { Voucher } from "../models/voucher.model.js";
 import PDFDocument from "pdfkit";
 
 export const createPaidBooking = async (req, res) => {
   try {
     const user = req.user;
-    const { eventId, quantity, paymentMethod } = req.body;
+    const { eventId, quantity, paymentMethod, voucherCode } = req.body;
 
     if (!user) {
       return res.status(401).json({ message: "Unauthorized", success: false });
@@ -45,17 +46,56 @@ export const createPaidBooking = async (req, res) => {
       });
     }
 
-    const amount = (ticket.price || 0) * qty;
-    if (amount <= 0) {
+    const baseAmount = (ticket.price || 0) * qty;
+    if (baseAmount <= 0) {
       return res.status(400).json({ message: "Ticket price is invalid for this event", success: false });
     }
+
+    let discountAmount = 0;
+    let voucherId = null;
+
+    if (voucherCode) {
+      const voucher = await Voucher.findOne({ code: voucherCode.toUpperCase(), isActive: true });
+      if (!voucher) {
+        return res.status(400).json({ message: "Invalid voucher code", success: false });
+      }
+
+      // Validate voucher
+      if (new Date(voucher.expiryDate) < new Date()) {
+        return res.status(400).json({ message: "Voucher has expired", success: false });
+      }
+      if (voucher.usageLimit !== null && voucher.usedCount >= voucher.usageLimit) {
+        return res.status(400).json({ message: "Voucher usage limit reached", success: false });
+      }
+      if (voucher.eventId && voucher.eventId.toString() !== eventId) {
+        return res.status(400).json({ message: "Voucher is not applicable for this event", success: false });
+      }
+      if (baseAmount < voucher.minAmount) {
+        return res.status(400).json({ message: `Minimum amount to use this voucher is ${voucher.minAmount}`, success: false });
+      }
+
+      // Calculate discount
+      if (voucher.discountType === "percentage") {
+        discountAmount = (baseAmount * voucher.discountValue) / 100;
+        if (voucher.maxDiscount !== null && discountAmount > voucher.maxDiscount) {
+          discountAmount = voucher.maxDiscount;
+        }
+      } else {
+        discountAmount = voucher.discountValue;
+      }
+      voucherId = voucher._id;
+    }
+
+    const finalAmount = Math.max(0, baseAmount - discountAmount);
 
     const booking = await Booking.create({
       userId: user._id,
       eventId: event._id,
       ticketId: ticket._id,
       quantity: qty,
-      totalAmount: amount,
+      totalAmount: finalAmount,
+      discountAmount,
+      voucherId,
       bookingStatus: "confirmed",
       paymentStatus: "pending"
     });
@@ -64,12 +104,17 @@ export const createPaidBooking = async (req, res) => {
       bookingId: booking._id,
       paymentMethod,
       transactionId: `TXN-${Date.now()}`,
-      amount,
+      amount: finalAmount,
       paymentStatus: "success"
     });
 
     booking.paymentStatus = "paid";
     await booking.save();
+
+    if (voucherId) {
+      await Voucher.findByIdAndUpdate(voucherId, { $inc: { usedCount: 1 } });
+    }
+
     event.availableSeats = event.availableSeats - qty;
     await event.save();
     ticket.soldQuantity = (ticket.soldQuantity || 0) + qty;

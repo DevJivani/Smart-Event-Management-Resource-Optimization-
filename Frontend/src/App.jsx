@@ -58,6 +58,11 @@ import MyEvents from './pages/MyEvents'
 import Home from './components/Home'
 import EventDetails from './pages/EventDetails.jsx'
 import AdminBookingDetails from './pages/AdminBookingDetails.jsx'
+import OrganizerEventDetails from './pages/OrganizerEventDetails.jsx'
+import OrganizerEventEdit from './pages/OrganizerEventEdit.jsx'
+import OrganizerEventCreate from './pages/OrganizerEventCreate.jsx'
+import CompletedEvents from './pages/CompletedEvents.jsx'
+import OrganizerVouchers from './pages/OrganizerVouchers.jsx'
 
 const router = createBrowserRouter([
   {
@@ -79,6 +84,22 @@ const router = createBrowserRouter([
   {
     path: '/organizer',
     element: <OrganizerDashboard />
+  },
+  {
+    path: '/organizer/events/:eventId',
+    element: <OrganizerEventDetails />
+  },
+  {
+    path: '/organizer/events/:eventId/edit',
+    element: <OrganizerEventEdit />
+  },
+  {
+    path: '/organizer/events/create',
+    element: <OrganizerEventCreate />
+  },
+  {
+    path: '/completed',
+    element: <CompletedEvents />
   },
   {
     path: '/dashboard',
@@ -107,6 +128,10 @@ const router = createBrowserRouter([
   {
     path: '/organizer/bookings',
     element: <OrganizerBookings />
+  },
+  {
+    path: '/organizer/vouchers',
+    element: <OrganizerVouchers />
   },
   {
     path: '/profile',

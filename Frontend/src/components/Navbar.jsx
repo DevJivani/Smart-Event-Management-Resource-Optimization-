@@ -40,8 +40,8 @@ const Navbar = () => {
       if (res.data?.success) {
         setNotifications(res.data.notifications || []);
       }
-    } catch {
-      // ignore
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
     }
   };
 
@@ -97,12 +97,15 @@ const Navbar = () => {
       ? [
           { name: "Booked Tickets", path: "/organizer/bookings" },
           { name: "Events", path: "/organizer" },
-          { name: "Create Event", path: "/organizer?create=1" },
+          { name: "Completed", path: "/completed" },
+          { name: "Vouchers", path: "/organizer/vouchers" },
+          { name: "Create Event", path: "/organizer/events/create" },
         ]
       : user?.role === "admin"
       ? [
           { name: "Dashboard", path: "/admin" },
           { name: "Booked Tickets", path: "/admin/bookings" },
+          { name: "Completed", path: "/completed" },
         ]
       : [
           { name: "Home", path: "/" },
@@ -111,6 +114,15 @@ const Navbar = () => {
           { name: "About", path: "/about" },
           { name: "Contact", path: "/contact" },
         ];
+
+  // Ensure "Completed" link is present for organizer/admin only
+  const displayLinks = (() => {
+    const links = [...navLinks];
+    if (user && user.role !== "user" && !links.some((l) => l.path === "/completed")) {
+      links.splice(2, 0, { name: "Completed", path: "/completed" });
+    }
+    return links;
+  })();
 
   const isActivePath = (path) => location.pathname === path;
 
@@ -132,7 +144,7 @@ const Navbar = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => (
+            {displayLinks.map((link) => (
               <Link
                 key={link.path}
                 to={link.path}
@@ -338,7 +350,7 @@ const Navbar = () => {
       {isMobileMenuOpen && (
         <div className="md:hidden border-t border-gray-100 bg-white animate-in slide-in-from-top duration-200">
           <div className="px-4 py-3 space-y-1">
-            {navLinks.map((link) => (
+            {displayLinks.map((link) => (
               <Link
                 key={link.path}
                 to={link.path}

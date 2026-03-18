@@ -175,7 +175,9 @@ const AdminDashboard = () => {
     const price = Number(e.price || 0);
     const minOk = filters.priceMin !== "" ? price >= Number(filters.priceMin) : true;
     const maxOk = filters.priceMax !== "" ? price <= Number(filters.priceMax) : true;
-    return matchesQuery && minOk && maxOk;
+    const status = e.effectiveStatus || e.status;
+    const hideCompleted = filters.status === "all" ? status !== "completed" : true;
+    return matchesQuery && minOk && maxOk && hideCompleted;
   });
 
   return (

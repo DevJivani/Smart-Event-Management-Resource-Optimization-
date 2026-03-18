@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import axios from "axios";
 import { toast } from "react-hot-toast";
@@ -23,8 +23,9 @@ const isStrongPassword = (password) => {
 };
 const Register = () => {
   const dispatch = useDispatch();
-  const { loading } = useSelector(state => state.auth);
+  const { user } = useSelector(state => state.auth);
   const navigate = useNavigate();
+  const [loading, setLocalLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     userName: "",
@@ -69,48 +70,55 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLocalLoading(true);
 
     // Validation - check if all fields are filled
     if (!formData.userName || !formData.userName.trim()) {
       toast.error("Full name is required");
+      setLocalLoading(false);
       return;
     }
 
     if (!formData.email || !formData.email.trim()) {
       toast.error("Email is required");
+      setLocalLoading(false);
       return;
     }
 
     if (!formData.password || !formData.password.trim()) {
       toast.error("Password is required");
+      setLocalLoading(false);
       return;
     }
 
     // Validate strong password
     if (!isStrongPassword(formData.password)) {
       toast.error("Password must be at least 8 characters and include uppercase, lowercase, number, and special character");
+      setLocalLoading(false);
       return;
     }
 
     if (!formData.phoneNumber || !formData.phoneNumber.trim()) {
       toast.error("Phone number is required");
+      setLocalLoading(false);
       return;
     }
 
     // Validate phone number is exactly 10 digits
     if (formData.phoneNumber.length !== 10) {
       toast.error("Phone number must be exactly 10 digits");
+      setLocalLoading(false);
       return;
     }
 
     // Validate phone number contains only digits
     if (!/^\d{10}$/.test(formData.phoneNumber)) {
       toast.error("Phone number must contain only digits");
+      setLocalLoading(false);
       return;
     }
 
     try {
-      dispatch(setLoading(true));
       const form = new FormData();
       form.append("userName", formData.userName);
       form.append("email", formData.email);
@@ -129,19 +137,16 @@ const Register = () => {
           headers: { "Content-Type": "multipart/form-data" }
         }
       );
-      console.log(res);
-      
 
       if (res.data.success) {
         localStorage.removeItem(PENDING_IMAGE_KEY);
-        dispatch(setUser(res.data.createUser));
-        toast.success("Registration successful!");
-        navigate('/login');
+        toast.success("Account created successfully!");
+        navigate("/login");
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Registration failed");
     } finally {
-      dispatch(setLoading(false));
+      setLocalLoading(false);
     }
   };
 

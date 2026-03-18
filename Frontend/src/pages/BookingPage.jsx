@@ -42,6 +42,8 @@ const BookingPage = () => {
     promoCode: "",
     acceptTerms: false
   });
+  const [discount, setDiscount] = useState(0);
+  const [appliedVoucher, setAppliedVoucher] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState("");
 
@@ -74,7 +76,8 @@ const BookingPage = () => {
 
   const maxQty = useMemo(() => Math.max(1, Number(event?.availableSeats || 1)), [event]);
   const unitPrice = useMemo(() => Number(event?.price || 0), [event]);
-  const total = useMemo(() => unitPrice * (quantity || 1), [unitPrice, quantity]);
+  const subtotal = useMemo(() => unitPrice * (quantity || 1), [unitPrice, quantity]);
+  const total = useMemo(() => Math.max(0, subtotal - discount), [subtotal, discount]);
 
   const canBook =
     !!event &&
@@ -126,6 +129,30 @@ const BookingPage = () => {
 
   const handleDetailChange = (name, value) => {
     setDetails((prev) => ({ ...prev, [name]: value }));
+    if (name === "promoCode") {
+      setDiscount(0);
+      setAppliedVoucher(null);
+    }
+  };
+
+  const handleApplyVoucher = async () => {
+    if (!details.promoCode) return;
+    try {
+      const resp = await axiosInstance.post("/api/v1/voucher/validate", {
+        code: details.promoCode,
+        eventId,
+        amount: subtotal
+      });
+      if (resp.data.success) {
+        setDiscount(resp.data.discount);
+        setAppliedVoucher(details.promoCode);
+        toast.success(`Voucher applied! Discount: ₹${formatPrice(resp.data.discount)}`);
+      }
+    } catch (e) {
+      toast.error(e.response?.data?.message || "Invalid voucher code");
+      setDiscount(0);
+      setAppliedVoucher(null);
+    }
   };
 
   const handleBook = async () => {
@@ -136,7 +163,8 @@ const BookingPage = () => {
         eventId,
         quantity,
         paymentMethod,
-        paymentDetails: details
+        paymentDetails: details,
+        voucherCode: appliedVoucher
       };
       const resp = await axiosInstance.post("/api/v1/booking/create", payload);
       if (resp.data.success) {
@@ -260,13 +288,33 @@ const BookingPage = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Promo Code</label>
-                    <input
-                      type="text"
-                      value={details.promoCode}
-                      onChange={(e) => handleDetailChange("promoCode", e.target.value)}
-                      placeholder="Enter code"
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                    />
+                    <div className="mt-1 flex gap-2">
+                      <input
+                        type="text"
+                        value={details.promoCode}
+                        onChange={(e) => handleDetailChange("promoCode", e.target.value.toUpperCase())}
+                        placeholder="Enter code"
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        disabled={appliedVoucher}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleApplyVoucher}
+                        className={`px-4 py-2 rounded-md transition ${
+                          appliedVoucher
+                            ? "bg-emerald-100 text-emerald-700 cursor-default"
+                            : "bg-gray-800 text-white hover:bg-gray-700"
+                        }`}
+                        disabled={!details.promoCode || appliedVoucher}
+                      >
+                        {appliedVoucher ? "Applied" : "Apply"}
+                      </button>
+                    </div>
+                    {appliedVoucher && (
+                      <p className="mt-1 text-xs text-emerald-600 font-medium">
+                        ✓ Discount of ₹{formatPrice(discount)} applied!
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Notes</label>
@@ -422,6 +470,12 @@ const BookingPage = () => {
                   )}
                   <div className="flex items-center justify-between border-t pt-4">
                     <div>
+                      {discount > 0 && (
+                        <div className="mb-1">
+                          <p className="text-xs text-gray-500 line-through">Subtotal: ₹{formatPrice(subtotal)}</p>
+                          <p className="text-xs text-emerald-600">Discount: -₹{formatPrice(discount)}</p>
+                        </div>
+                      )}
                       <p className="text-sm text-gray-500">Total</p>
                       <p className="text-xl font-bold text-gray-900">₹{formatPrice(total)}</p>
                     </div>
@@ -470,11 +524,21 @@ const BookingPage = () => {
                         <p className="font-semibold">{paymentMethod}</p>
                       </div>
                     </div>
-                    {details.promoCode && <p className="text-xs text-gray-500 mt-2">Promo code captured: {details.promoCode}</p>}
+                    {appliedVoucher && (
+                      <div className="mt-2 p-2 bg-emerald-50 rounded border border-emerald-100 flex justify-between items-center">
+                        <span className="text-xs text-emerald-700 font-medium">Voucher Applied: {appliedVoucher}</span>
+                        <span className="text-xs text-emerald-700 font-bold">-₹{formatPrice(discount)}</span>
+                      </div>
+                    )}
                     {details.notes && <p className="text-xs text-gray-500 mt-1">Notes: {details.notes}</p>}
                   </div>
                   <div className="flex items-center justify-between">
                     <div>
+                      {discount > 0 && (
+                        <div className="mb-1 text-right">
+                          <p className="text-xs text-gray-400 line-through">₹{formatPrice(subtotal)}</p>
+                        </div>
+                      )}
                       <p className="text-sm text-gray-500">Total</p>
                       <p className="text-2xl font-bold text-gray-900">₹{formatPrice(total)}</p>
                     </div>

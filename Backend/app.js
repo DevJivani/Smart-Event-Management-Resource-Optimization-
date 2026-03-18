@@ -6,6 +6,7 @@ import eventRouter from "./Routes/event.route.js";
 import bookingRouter from "./Routes/booking.route.js";
 import reviewRouter from "./Routes/review.route.js";
 import notificationRouter from "./Routes/notification.route.js";
+import voucherRouter from "./Routes/voucher.route.js";
 
 const app = express();
 
@@ -41,4 +42,6 @@ app.use("/api/v1/booking", bookingRouter);
 app.use("/api/v1/review", reviewRouter);
 // Notification-related routes
 app.use("/api/v1/notification", notificationRouter);
+// Voucher-related routes
+app.use("/api/v1/voucher", voucherRouter);
 export { app };

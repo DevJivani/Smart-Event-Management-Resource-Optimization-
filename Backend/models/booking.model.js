@@ -25,6 +25,15 @@ const bookingSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
+    discountAmount: {
+      type: Number,
+      default: 0,
+    },
+    voucherId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Voucher",
+      default: null,
+    },
     bookingStatus: {
       type: String,
       enum: ["confirmed", "cancelled"],

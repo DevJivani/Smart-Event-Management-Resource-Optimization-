@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import axios from "axios";
 import { toast } from "react-hot-toast";
@@ -7,8 +7,9 @@ import { useNavigate, Link } from 'react-router-dom';
 
 const Login = () => {
   const dispatch = useDispatch();
-  const { loading } = useSelector(state => state.auth);
+  const { user } = useSelector(state => state.auth);
   const navigate = useNavigate();
+  const [loading, setLocalLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     email: "",
@@ -23,34 +24,34 @@ const Login = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    dispatch(setLoading(true));
-
-    try {
-      const res = await axios.post(
-        "http://localhost:3000/api/v1/user/login",
-        formData,
-        { withCredentials: true }
-      );
-
-      if (res.data.success) {
-        console.log(res.data);
-        
-        dispatch(setUser(res.data.loggedInUser));
-        toast.success("Login successful!");
-        // Redirect based on role
-        const role = res.data.loggedInUser?.role;
-        if (role === 'organizer') navigate('/organizer');
-        else if (role === 'user') navigate('/dashboard');
-        else if (role === 'admin') navigate('/admin');
-        else navigate('/');
-      }
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Login failed");
-    } finally {
-      dispatch(setLoading(false));
-    }
-  };
+     e.preventDefault();
+     setLocalLoading(true);
+ 
+     try {
+       const res = await axios.post(
+         "http://localhost:3000/api/v1/user/login",
+         formData,
+         { withCredentials: true }
+       );
+ 
+       if (res.data.success) {
+         console.log(res.data);
+         
+         dispatch(setUser(res.data.loggedInUser));
+         toast.success("Login successful!");
+         // Redirect based on role
+         const role = res.data.loggedInUser?.role;
+         if (role === 'organizer') navigate('/organizer');
+         else if (role === 'user') navigate('/dashboard');
+         else if (role === 'admin') navigate('/admin');
+         else navigate('/');
+       }
+     } catch (error) {
+       toast.error(error.response?.data?.message || "Login failed");
+     } finally {
+       setLocalLoading(false);
+     }
+   };
 
   return (
     <div className="min-h-screen flex">
