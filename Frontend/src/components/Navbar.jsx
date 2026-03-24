@@ -4,12 +4,15 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import axiosInstance from "../utils/axios";
 import { setUser, setLoading } from "../redux/authSlice";
+import { toggleTheme } from "../redux/themeSlice";
 
 const Navbar = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useSelector((state) => state.auth);
+  const theme = useSelector((state) => state.theme);
+  const mode = theme?.mode || 'light';
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -71,6 +74,17 @@ const Navbar = () => {
     }
   };
 
+  const deleteNotification = async (id) => {
+    try {
+      const res = await axiosInstance.delete(`/api/v1/notification/${id}`);
+      if (res.data?.success) {
+        setNotifications((list) => list.filter((n) => String(n._id) !== String(id)));
+      }
+    } catch {
+      // ignore
+    }
+  };
+
   // Lightweight fetch on open
   if (isNotifOpen && notifications.length === 0 && user) {
     void fetchNotifications();
@@ -97,19 +111,20 @@ const Navbar = () => {
       ? [
           { name: "Booked Tickets", path: "/organizer/bookings" },
           { name: "Events", path: "/organizer" },
-          { name: "Completed", path: "/completed" },
+          { name: "Scan Tickets", path: "/organizer/scanner" },
           { name: "Vouchers", path: "/organizer/vouchers" },
+          { name: "Messages", path: "/organizer/messages" },
           { name: "Create Event", path: "/organizer/events/create" },
         ]
       : user?.role === "admin"
       ? [
           { name: "Dashboard", path: "/admin" },
           { name: "Booked Tickets", path: "/admin/bookings" },
-          { name: "Completed", path: "/completed" },
+          { name: "Review", path: "/admin/reviews" },
         ]
       : [
           { name: "Home", path: "/" },
-          { name: "Events", path: "/events" },
+          { name: "Events", path: "/dashboard" },
           ...(user?.role === "user" ? [{ name: "My Events", path: "/my-events" }] : []),
           { name: "About", path: "/about" },
           { name: "Contact", path: "/contact" },
@@ -118,8 +133,8 @@ const Navbar = () => {
   // Ensure "Completed" link is present for organizer/admin only
   const displayLinks = (() => {
     const links = [...navLinks];
-    if (user && user.role !== "user" && !links.some((l) => l.path === "/completed")) {
-      links.splice(2, 0, { name: "Completed", path: "/completed" });
+    if (user && user.role !== "user") {
+      links.splice(2, 0, { name: "Completed", path: "/completed-events" });
     }
     return links;
   })();
@@ -127,7 +142,7 @@ const Navbar = () => {
   const isActivePath = (path) => location.pathname === path;
 
   return (
-    <nav className="bg-white/80 backdrop-blur-md border-b border-gray-100 sticky top-0 z-50">
+    <nav className="bg-white/80 dark:bg-gray-950/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 sticky top-0 z-50 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
@@ -150,8 +165,8 @@ const Navbar = () => {
                 to={link.path}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   isActivePath(link.path)
-                    ? "bg-purple-50 text-purple-600"
-                    : "text-gray-600 hover:text-purple-600 hover:bg-gray-50"
+                    ? "bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400"
+                    : "text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-gray-50 dark:hover:bg-gray-900"
                 }`}
               >
                 {link.name}
@@ -161,6 +176,23 @@ const Navbar = () => {
 
           {/* Right Side - Auth Buttons / User Menu */}
           <div className="hidden md:flex items-center gap-3">
+            {/* Theme Toggle Button */}
+            <button
+              onClick={() => dispatch(toggleTheme())}
+              className="p-2 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-all duration-200 border border-gray-100 dark:border-gray-700 shadow-sm flex items-center justify-center"
+              title={mode === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            >
+              {mode === 'dark' ? (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8a4 4 0 100 8 4 4 0 000-8z M12 2v2 M12 20v2 M4.93 4.93l1.41 1.41 M17.66 17.66l1.41 1.41 M2 12h2 M20 12h2 M4.93 19.07l1.41-1.41 M17.66 6.34l1.41-1.41" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                </svg>
+              )}
+            </button>
+
             {!user ? (
               <>
                 <Link
@@ -185,24 +217,24 @@ const Navbar = () => {
                     setIsProfileOpen(false);
                     if (!isNotifOpen) fetchNotifications();
                   }}
-                  className="p-2 rounded-full hover:bg-gray-50 relative"
+                  className="p-2 rounded-full hover:bg-gray-50 dark:hover:bg-gray-800 relative transition-colors"
                   title="Notifications"
                 >
-                  <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-6 h-6 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                   </svg>
                   {unreadCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+                    <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">
                       {unreadCount}
                     </span>
                   )}
                 </button>
                 {isNotifOpen && (
-                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-100 py-2">
-                    <div className="flex items-center justify-between px-4 py-2 border-b">
-                      <span className="text-sm font-semibold text-gray-900">Notifications</span>
+                  <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-gray-100 dark:border-gray-800 py-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100 dark:border-gray-800">
+                      <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">Notifications</span>
                       <button
-                        className="text-xs px-2 py-1 rounded border border-gray-300"
+                        className="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                         onClick={markAllRead}
                       >
                         Mark all read
@@ -210,26 +242,37 @@ const Navbar = () => {
                     </div>
                     <div className="max-h-80 overflow-auto">
                       {(notifications || []).length === 0 ? (
-                        <div className="px-4 py-6 text-sm text-gray-600">No notifications</div>
+                        <div className="px-4 py-6 text-sm text-gray-600 dark:text-gray-400 text-center">No notifications</div>
                       ) : (
                         notifications.map((n) => (
-                          <div key={n._id} className="px-4 py-3 border-b last:border-b-0 hover:bg-gray-50">
-                            <div className="flex items-start justify-between">
-                              <div>
-                                <p className="text-sm font-semibold text-gray-900">{n.title}</p>
-                                <p className="text-xs text-gray-600">{n.message}</p>
-                                <p className="text-[11px] text-gray-400 mt-1">
+                          <div key={n._id} className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 last:border-b-0 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors group">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1">
+                                <p className={`text-sm font-semibold ${n.isRead ? "text-gray-600 dark:text-gray-400" : "text-gray-900 dark:text-gray-100"}`}>{n.title}</p>
+                                <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">{n.message}</p>
+                                <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1">
                                   {new Date(n.createdAt).toLocaleDateString()} {new Date(n.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                                 </p>
                               </div>
-                              {!n.isRead && (
+                              <div className="flex flex-col items-end gap-2">
                                 <button
-                                  className="text-xs px-2 py-1 rounded border border-gray-300"
-                                  onClick={() => markRead(n._id)}
+                                  onClick={() => deleteNotification(n._id)}
+                                  className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors p-1"
+                                  title="Delete notification"
                                 >
-                                  Mark read
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
                                 </button>
-                              )}
+                                {!n.isRead && (
+                                  <button
+                                    className="text-[10px] px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-700 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors"
+                                    onClick={() => markRead(n._id)}
+                                  >
+                                    Mark read
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           </div>
                         ))
@@ -326,29 +369,45 @@ const Navbar = () => {
           </div>
 
           {/* Mobile Menu Button */}
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
-          >
-            <svg
-              className="w-6 h-6 text-gray-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+          <div className="flex items-center gap-2 md:hidden">
+            <button
+              onClick={() => dispatch(toggleTheme())}
+              className="p-2 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 transition-colors border border-gray-100 dark:border-gray-700 flex items-center justify-center"
             >
-              {isMobileMenuOpen ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+              {mode === 'dark' ? (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8a4 4 0 100 8 4 4 0 000-8z M12 2v2 M12 20v2 M4.93 4.93l1.41 1.41 M17.66 17.66l1.41 1.41 M2 12h2 M20 12h2 M4.93 19.07l1.41-1.41 M17.66 6.34l1.41-1.41" />
+                </svg>
               ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                </svg>
               )}
-            </svg>
-          </button>
+            </button>
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
+              <svg
+                className="w-6 h-6 text-gray-600 dark:text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                {isMobileMenuOpen ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+                )}
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
-        <div className="md:hidden border-t border-gray-100 bg-white animate-in slide-in-from-top duration-200">
+        <div className="md:hidden border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-950 animate-in slide-in-from-top duration-200">
           <div className="px-4 py-3 space-y-1">
             {displayLinks.map((link) => (
               <Link
@@ -357,8 +416,8 @@ const Navbar = () => {
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={`block px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
                   isActivePath(link.path)
-                    ? "bg-purple-50 text-purple-600"
-                    : "text-gray-600 hover:bg-gray-50"
+                    ? "bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400"
+                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900"
                 }`}
               >
                 {link.name}
@@ -366,13 +425,13 @@ const Navbar = () => {
             ))}
           </div>
 
-          <div className="px-4 py-4 border-t border-gray-100">
+          <div className="px-4 py-4 border-t border-gray-100 dark:border-gray-800">
             {!user ? (
               <div className="space-y-3">
                 <Link
                   to="/login"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="block w-full text-center px-4 py-3 border-2 border-purple-200 text-purple-600 font-medium rounded-xl hover:bg-purple-50 transition-colors"
+                  className="block w-full text-center px-4 py-3 border-2 border-purple-200 dark:border-purple-900/50 text-purple-600 dark:text-purple-400 font-medium rounded-xl hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors"
                 >
                   Sign In
                 </Link>
@@ -387,7 +446,7 @@ const Navbar = () => {
             ) : (
               <div className="space-y-2">
                 <div className="flex items-center gap-3 px-2 py-3">
-                  <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center text-white font-semibold">
+                  <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center text-white font-semibold shadow-md">
                     {user?.profileImage ? (
                       <img
                         src={user.profileImage}
@@ -399,15 +458,15 @@ const Navbar = () => {
                     )}
                   </div>
                   <div>
-                    <p className="font-medium text-gray-800">{user?.name}</p>
-                    <p className="text-xs text-gray-500">{user?.email}</p>
+                    <p className="font-medium text-gray-800 dark:text-gray-200">{user?.name}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{user?.email}</p>
                   </div>
                 </div>
                 
                 <Link
                   to="/profile"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                  className="flex items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 rounded-lg transition-colors"
                 >
                   <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -415,11 +474,9 @@ const Navbar = () => {
                   My Profile
                 </Link>
                 
-                {/* My Events now included in main navLinks above */}
-                
                 <button
                   onClick={handleLogout}
-                  className="flex items-center gap-3 w-full px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  className="flex items-center gap-3 w-full px-4 py-3 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
