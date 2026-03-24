@@ -171,6 +171,67 @@ export const userLogin = async (req, res) => {
             });
         }
 
+        // 2FA logic
+        if (user.twoFactorAuth) {
+            const otp = Math.floor(100000 + Math.random() * 900000).toString();
+            const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+            user.twoFactorOtp = otp;
+            user.twoFactorOtpExpiry = otpExpiry;
+            await user.save();
+
+            // Send OTP email
+            try {
+                if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+                    console.log(`\n========== 2FA OTP ==========`);
+                    console.log(`Email: ${email}`);
+                    console.log(`OTP: ${otp}`);
+                    console.log(`==============================\n`);
+                } else {
+                    const transporter = nodemailer.createTransport({
+                        service: 'gmail',
+                        auth: {
+                            user: process.env.EMAIL_USER,
+                            pass: process.env.EMAIL_PASSWORD
+                        }
+                    });
+
+                    const mailOptions = {
+                        from: process.env.EMAIL_USER,
+                        to: email,
+                        subject: 'Login Verification Code - EventHub',
+                        html: `
+                            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 10px 10px 0 0; color: white; text-align: center;">
+                                    <h2>Login Verification</h2>
+                                </div>
+                                <div style="padding: 30px; background: #f9f9f9; border-radius: 0 0 10px 10px;">
+                                    <p style="color: #333; margin-bottom: 20px;">Hello ${user.name},</p>
+                                    <p style="color: #666; margin-bottom: 20px;">Use the following verification code to complete your login:</p>
+                                    <div style="background: white; border: 2px solid #667eea; border-radius: 8px; padding: 20px; text-align: center; margin: 30px 0;">
+                                        <h1 style="font-size: 36px; letter-spacing: 5px; color: #667eea; margin: 0; font-weight: bold;">${otp}</h1>
+                                        <p style="font-size: 12px; color: #999; margin: 10px 0 0 0;">Valid for 10 minutes</p>
+                                    </div>
+                                    <p style="color: #666;">If you did not attempt to log in, please secure your account immediately.</p>
+                                </div>
+                            </div>
+                        `
+                    };
+                    await transporter.sendMail(mailOptions);
+                }
+
+                return res.status(200).json({
+                    message: "Verification code sent to your email",
+                    success: true,
+                    twoFactorRequired: true,
+                    email: user.email // for identification in next step
+                });
+            } catch (err) {
+                console.error("2FA email error:", err);
+                return res.status(500).json({ message: "Error sending verification code", success: false });
+            }
+        }
+
         const accessToken = await createAccessToken(user._id);
 
         const options = {
@@ -626,5 +687,211 @@ export const resetPassword = async (req, res) => {
             message: "Server error",
             success: false
         });
+    }
+}
+
+// Delete Account Controller
+export const deleteAccount = async (req, res) => {
+    try {
+        const userId = req.user?._id;
+
+        if (!userId) {
+            return res.status(401).json({
+                message: "Unauthorized",
+                success: false
+            });
+        }
+
+        const user = await User.findById(userId);
+
+        if (!user) {
+            return res.status(404).json({
+                message: "User not found",
+                success: false
+            });
+        }
+
+        // Delete user
+        await User.findByIdAndDelete(userId);
+
+        // Clear cookie
+        res.cookie("token", "", {
+            httpOnly: true,
+            secure: true,
+            sameSite: "none",
+            expires: new Date(0),
+        });
+
+        return res.status(200).json({
+            message: "Account deleted successfully",
+            success: true
+        });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            message: "Server error",
+            success: false
+        });
+    }
+}
+
+// Update User Settings Controller
+export const updateSettings = async (req, res) => {
+    try {
+        const userId = req.user?._id;
+        const { emailNotifications, publicProfile, twoFactorAuth } = req.body;
+
+        if (!userId) {
+            return res.status(401).json({
+                message: "Unauthorized",
+                success: false
+            });
+        }
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({
+                message: "User not found",
+                success: false
+            });
+        }
+
+        // Update settings if they are present in request
+        if (emailNotifications !== undefined) user.emailNotifications = emailNotifications;
+        if (publicProfile !== undefined) user.publicProfile = publicProfile;
+        if (twoFactorAuth !== undefined) user.twoFactorAuth = twoFactorAuth;
+
+        await user.save();
+
+        const updatedUser = await User.findById(userId).select("-password");
+
+        return res.status(200).json({
+            message: "Settings updated successfully",
+            user: updatedUser,
+            success: true
+        });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            message: "Server error",
+            success: false
+        });
+    }
+}
+
+// Get Public Profile Controller
+export const getPublicProfile = async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        if (!userId) {
+            return res.status(400).json({ message: "User ID is required", success: false });
+        }
+
+        const user = await User.findById(userId).select("name profileImage role publicProfile createdAt");
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found", success: false });
+        }
+
+        // Base data that is always public
+        const profileData = {
+            name: user.name,
+            profileImage: user.profileImage,
+            role: user.role,
+            memberSince: user.createdAt,
+            publicProfile: user.publicProfile
+        };
+
+        // If profile is private, return only base data
+        if (!user.publicProfile) {
+            return res.status(200).json({
+                message: "This profile is private",
+                user: profileData,
+                success: true,
+                isPrivate: true
+            });
+        }
+
+        // If public, fetch additional data
+        // 1. Fetch recent reviews
+        const { Review } = await import("../models/review.model.js");
+        const reviews = await Review.find({ userId, visible: true })
+            .populate("eventId", "title bannerImage venue city startDate")
+            .sort({ createdAt: -1 })
+            .limit(5);
+
+        // 2. Fetch attended events (bookings)
+        const { Booking } = await import("../models/booking.model.js");
+        const attendedEvents = await Booking.find({ userId, paymentStatus: "paid" })
+            .populate("eventId", "title bannerImage venue city startDate")
+            .sort({ createdAt: -1 })
+            .limit(5);
+
+        return res.status(200).json({
+            message: "Public profile fetched successfully",
+            user: {
+                ...profileData,
+                reviews,
+                attendedEvents
+            },
+            success: true,
+            isPrivate: false
+        });
+
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ message: "Server error", success: false });
+    }
+}
+
+// Verify 2FA Controller
+export const verify2FA = async (req, res) => {
+    try {
+        const { email, otp } = req.body;
+
+        if (!email || !otp) {
+            return res.status(400).json({ message: "Email and code are required", success: false });
+        }
+
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found", success: false });
+        }
+
+        if (!user.twoFactorOtp || !user.twoFactorOtpExpiry) {
+            return res.status(400).json({ message: "Verification not requested", success: false });
+        }
+
+        if (new Date() > user.twoFactorOtpExpiry) {
+            return res.status(400).json({ message: "Code has expired", success: false });
+        }
+
+        if (user.twoFactorOtp !== otp) {
+            return res.status(400).json({ message: "Invalid verification code", success: false });
+        }
+
+        // Clear OTP
+        user.twoFactorOtp = null;
+        user.twoFactorOtpExpiry = null;
+        await user.save();
+
+        // Complete login
+        const accessToken = await createAccessToken(user._id);
+        const options = { httpOnly: true, secure: false };
+        const loggedInUser = await User.findById(user._id).select("-password");
+
+        return res
+            .status(201)
+            .cookie("accessToken", accessToken, options)
+            .json({
+                message: "Verification successful. Welcome back!",
+                loggedInUser,
+                success: true
+            });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ message: "Server error", success: false });
     }
 }

@@ -34,3 +34,20 @@ export const verifyJwt = async(req,res,next) =>{
     }
 
 }
+
+export const optionalVerifyJwt = async (req, res, next) => {
+    try {
+        const token = req.cookies?.accessToken;
+        if (!token) {
+            return next();
+        }
+        const decodeToken = await jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+        const user = await User.findById(decodeToken?._id).select("-password");
+        if (user) {
+            req.user = user;
+        }
+        next();
+    } catch (error) {
+        next();
+    }
+};

@@ -48,6 +48,19 @@ const bookingSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    ticketSecret: {
+      type: String,
+      unique: true,
+    },
+    checkInStatus: {
+      type: String,
+      enum: ["pending", "checked-in"],
+      default: "pending",
+    },
+    checkInTime: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true }
 );

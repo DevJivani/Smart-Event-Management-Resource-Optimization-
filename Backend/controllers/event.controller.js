@@ -2,7 +2,12 @@ import { log } from "console";
 import { Event } from "../models/event.model.js";
 import { EventCategory } from "../models/eventCategory.model.js";
 import { uploadToCloudinary } from "../utils/cloudinary.js";
+import { sendNotificationEmail } from "../utils/email.js";
 import { Ticket } from "../models/ticket.model.js";
+import { User } from "../models/user.model.js";
+import { Review } from "../models/review.model.js";
+import { Notification } from "../models/notification.model.js";
+import { Message } from "../models/message.model.js";
 import fs from "fs/promises";
 
 const buildDateTime = (date, time, isEnd) => {
@@ -109,6 +114,73 @@ export const getOrganizerEvents = async (req, res) => {
             message: "Server error",
             success: false
         });
+    }
+};
+
+export const contactOrganizer = async (req, res) => {
+    try {
+        const { eventId, name, email, message } = req.body;
+        if (!eventId || !name || !email || !message) {
+            return res.status(400).json({ message: "All fields are required", success: false });
+        }
+
+        const event = await Event.findById(eventId);
+        if (!event) {
+            return res.status(404).json({ message: "Event not found", success: false });
+        }
+
+        // Save to Message model
+        await Message.create({
+            eventId,
+            organizerId: event.createdBy,
+            senderId: req.user?._id, // included if logged in
+            name,
+            email,
+            message,
+        });
+
+        // Still send a notification for immediate alert
+        await Notification.create({
+            userId: event.createdBy,
+            title: `New Inquiry for ${event.title}`,
+            message: `You have a new message from ${name} (${email}). View it in your inquiries.`,
+        });
+
+        // Send Email Notification to Organizer
+        await sendNotificationEmail(event.createdBy, {
+            subject: `New Inquiry: ${event.title} - EventHub`,
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden;">
+                    <div style="background: #111827; padding: 20px; text-align: center; color: white;">
+                        <h2 style="margin: 0;">New Inquiry Received</h2>
+                    </div>
+                    <div style="padding: 30px; background: white;">
+                        <p style="color: #374151;">You have received a new inquiry for your event <strong>${event.title}</strong>:</p>
+                        
+                        <div style="background: #f9fafb; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                            <p style="margin: 0 0 10px 0;"><strong>From:</strong> ${name} (${email})</p>
+                            <p style="margin: 0;"><strong>Message:</strong></p>
+                            <p style="color: #4b5563; font-style: italic; margin: 10px 0 0 0; padding-left: 10px; border-left: 3px solid #6366f1;">
+                                "${message}"
+                            </p>
+                        </div>
+
+                        <p style="color: #6b7280; font-size: 14px;">Log in to your organizer dashboard to reply to this inquiry.</p>
+                    </div>
+                    <div style="background: #f3f4f6; padding: 15px; text-align: center; color: #9ca3af; font-size: 12px;">
+                        &copy; 2026 EventHub. All rights reserved.
+                    </div>
+                </div>
+            `
+        });
+
+        return res.status(200).json({
+            message: "Message sent to organizer successfully",
+            success: true
+        });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ message: "Server error", success: false });
     }
 };
 
@@ -481,6 +553,39 @@ export const getEventCategories = async (req, res) => {
             message: "Server error while fetching categories",
             success: false,
             error: error.message
+        });
+    }
+};
+
+export const getPublicStats = async (req, res) => {
+    try {
+        const eventsCount = await Event.countDocuments({ isApproved: true, isDisabled: false });
+        const usersCount = await User.countDocuments({ role: "user" });
+        const reviews = await Review.find({ visible: true });
+        
+        let satisfactionRate = 99; // Default high if no reviews
+        if (reviews.length > 0) {
+            const totalRating = reviews.reduce((acc, r) => acc + (Number(r.rating) || 0), 0);
+            const avgRating = totalRating / reviews.length;
+            // Map 1-5 rating to 0-100% scale
+            // (avg - 1) / (5 - 1) * 100 might be too harsh if avg is 4 (75%)
+            // Let's just use (avg / 5) * 100
+            satisfactionRate = Math.round((avgRating / 5) * 100);
+        }
+
+        return res.status(200).json({
+            success: true,
+            stats: {
+                eventsHosted: eventsCount,
+                activeUsers: usersCount,
+                satisfactionRate: satisfactionRate
+            }
+        });
+    } catch (error) {
+        console.log("Error fetching stats:", error);
+        return res.status(500).json({
+            message: "Server error",
+            success: false
         });
     }
 };

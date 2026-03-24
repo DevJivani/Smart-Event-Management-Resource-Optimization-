@@ -1,7 +1,7 @@
 import express from "express";
-import { createEvent, deleteEvent, getEventById, getEventCategories, getOrganizerEvents, updateEvent, getAllEvents, adminApproveEvent, adminDisableEvent, adminEnableEvent, adminGetAllEvents, adminUpdateStatus, adminUnapproveEvent } from "../controllers/event.controller.js";
+import { createEvent, deleteEvent, getEventById, getEventCategories, getOrganizerEvents, updateEvent, getAllEvents, adminApproveEvent, adminDisableEvent, adminEnableEvent, adminGetAllEvents, adminUpdateStatus, adminUnapproveEvent, getPublicStats, contactOrganizer } from "../controllers/event.controller.js";
 import { createReviewForEvent, getReviewsForEvent } from "../controllers/review.controller.js";
-import { verifyJwt } from "../middlewares/auth.middleware.js";
+import { verifyJwt, optionalVerifyJwt } from "../middlewares/auth.middleware.js";
 import { upload } from "../middlewares/multer.middleware.js";
 
 const router = express.Router();
@@ -9,8 +9,14 @@ const router = express.Router();
 // Get all categories
 router.get("/categories", getEventCategories);
 
+// Get stats for home page
+router.get("/stats", getPublicStats);
+
 // Get all public events
 router.get("/", getAllEvents);
+
+// Contact Organizer
+router.post("/contact-organizer", optionalVerifyJwt, contactOrganizer);
 
 // Admin: Get all events
 router.get("/admin/all", verifyJwt, adminGetAllEvents);

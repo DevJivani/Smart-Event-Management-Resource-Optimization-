@@ -7,6 +7,7 @@ import bookingRouter from "./Routes/booking.route.js";
 import reviewRouter from "./Routes/review.route.js";
 import notificationRouter from "./Routes/notification.route.js";
 import voucherRouter from "./Routes/voucher.route.js";
+import messageRouter from "./Routes/message.route.js";
 
 const app = express();
 
@@ -44,4 +45,6 @@ app.use("/api/v1/review", reviewRouter);
 app.use("/api/v1/notification", notificationRouter);
 // Voucher-related routes
 app.use("/api/v1/voucher", voucherRouter);
+// Message-related routes
+app.use("/api/v1/message", messageRouter);
 export { app };

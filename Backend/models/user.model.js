@@ -41,6 +41,26 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    emailNotifications: {
+      type: Boolean,
+      default: true,
+    },
+    publicProfile: {
+      type: Boolean,
+      default: false,
+    },
+    twoFactorAuth: {
+      type: Boolean,
+      default: false,
+    },
+    twoFactorOtp: {
+      type: String,
+      default: null,
+    },
+    twoFactorOtpExpiry: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true }
 );

@@ -45,6 +45,19 @@ export const createReviewForEvent = async (req, res) => {
   }
 };
 
+export const getAllPublicReviews = async (req, res) => {
+  try {
+    const reviews = await Review.find({ visible: true })
+      .populate("userId", "name email role")
+      .populate("eventId", "title")
+      .populate("replies.userId", "name email role")
+      .sort({ createdAt: -1 });
+    return res.status(200).json({ message: "Public reviews fetched", reviews, success: true });
+  } catch (e) {
+    return res.status(500).json({ message: "Server error", success: false });
+  }
+};
+
 export const adminGetAllReviews = async (req, res) => {
   try {
     if (!req.user || req.user.role !== "admin") {
