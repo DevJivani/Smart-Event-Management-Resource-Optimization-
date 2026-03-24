@@ -91,7 +91,7 @@ const BookingPage = () => {
   const attendeeValid =
     (details.attendeeName || "").trim().length >= 2 &&
     (details.attendeeEmail || "").includes("@") &&
-    (details.attendeePhone || "").trim().length >= 10 &&
+    (details.attendeePhone || "").trim().length === 10 &&
     details.acceptTerms === true;
 
   useEffect(() => {
@@ -128,6 +128,11 @@ const BookingPage = () => {
   }, [paymentMethod, details.upiId, details.attendeeName, total, event?.title]);
 
   const handleDetailChange = (name, value) => {
+    if (name === "attendeePhone") {
+      const v = value.replace(/\D/g, "").slice(0, 10);
+      setDetails((prev) => ({ ...prev, [name]: v }));
+      return;
+    }
     setDetails((prev) => ({ ...prev, [name]: value }));
     if (name === "promoCode") {
       setDiscount(0);
@@ -183,127 +188,144 @@ const BookingPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors duration-300">
       <Navbar />
       <main className="max-w-6xl mx-auto p-6">
         {loading ? (
           <div className="h-64 flex items-center justify-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 dark:border-indigo-400"></div>
           </div>
         ) : !event ? (
-          <div className="text-center py-20">
-            <h2 className="text-2xl font-bold text-gray-900">Event not found</h2>
-            <p className="mt-2 text-gray-600">Please go back and select a valid event.</p>
-            <button className="mt-6 px-4 py-2 bg-gray-800 text-white rounded-md" onClick={() => navigate(-1)}>
+          <div className="text-center py-20 bg-white dark:bg-gray-900 rounded-2xl shadow border border-gray-100 dark:border-gray-800 transition-colors">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Event not found</h2>
+            <p className="mt-2 text-gray-600 dark:text-gray-400">Please go back and select a valid event.</p>
+            <button className="mt-6 px-6 py-2 bg-gray-800 dark:bg-gray-700 text-white rounded-xl font-semibold hover:bg-gray-900 transition-all" onClick={() => navigate(-1)}>
               Go Back
             </button>
           </div>
         ) : (
           <div className="grid lg:grid-cols-2 gap-8">
-            <div className="bg-white rounded-2xl shadow overflow-hidden">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl overflow-hidden border border-gray-100 dark:border-gray-800 transition-colors">
               {event.bannerImage ? (
                 <img src={event.bannerImage} alt={event.title} className="w-full h-56 object-cover" />
               ) : (
-                <div className="w-full h-56 bg-gray-200"></div>
+                <div className="w-full h-56 bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/30 dark:to-purple-900/30"></div>
               )}
-              <div className="p-6 space-y-3">
-                <h1 className="text-2xl font-bold text-gray-900">{event.title}</h1>
-                <div className="flex flex-wrap gap-2">
-                  <span className="px-3 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+              <div className="p-8 space-y-6">
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{event.title}</h1>
+                <div className="flex flex-wrap gap-3">
+                  <span className="px-3 py-1 text-xs font-bold rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-100 dark:border-blue-800">
                     {event.effectiveStatus || event.status}
                   </span>
                   {event.isPaid ? (
-                    <span className="px-3 py-1 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800">
+                    <span className="px-3 py-1 text-xs font-bold rounded-lg bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800">
                       ₹{formatPrice(unitPrice)} per ticket
                     </span>
                   ) : (
-                    <span className="px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">Free</span>
+                    <span className="px-3 py-1 text-xs font-bold rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700">Free</span>
                   )}
                 </div>
-                <div className="grid grid-cols-2 gap-4 text-sm text-gray-700">
+                <div className="grid grid-cols-2 gap-6 border-t dark:border-gray-800 pt-6 text-sm">
                   <div>
-                    <p className="font-semibold">Date</p>
-                    <p>{new Date(event.startDate).toLocaleDateString()}</p>
+                    <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Date</p>
+                    <p className="font-bold text-gray-900 dark:text-white mt-0.5">{new Date(event.startDate).toLocaleDateString()}</p>
                   </div>
                   <div>
-                    <p className="font-semibold">Time</p>
-                    <p>{event.startTime || "TBA"}</p>
+                    <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Time</p>
+                    <p className="font-bold text-gray-900 dark:text-white mt-0.5">{event.startTime || "TBA"}</p>
                   </div>
                   <div>
-                    <p className="font-semibold">Venue</p>
-                    <p>
+                    <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Venue</p>
+                    <p className="font-bold text-gray-900 dark:text-white mt-0.5">
                       {event.venue}
                       {event.city ? `, ${event.city}` : ""}
                     </p>
                   </div>
                   <div>
-                    <p className="font-semibold">Seats</p>
-                    <p>
+                    <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Seats</p>
+                    <p className="font-bold text-gray-900 dark:text-white mt-0.5">
                       {event.availableSeats} / {event.totalSeats}
                     </p>
                   </div>
                 </div>
-                {event.description && <p className="mt-2 text-gray-600">{event.description}</p>}
+                {event.description && <p className="mt-4 text-gray-600 dark:text-gray-400 leading-relaxed text-sm">{event.description}</p>}
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow p-6">
-              <div className="flex items-center gap-2 mb-6">
-                <div className={`h-1.5 flex-1 rounded ${step >= 1 ? "bg-indigo-600" : "bg-gray-200"}`} />
-                <div className={`h-1.5 flex-1 rounded ${step >= 2 ? "bg-indigo-600" : "bg-gray-200"}`} />
-                <div className={`h-1.5 flex-1 rounded ${step >= 3 ? "bg-indigo-600" : "bg-gray-200"}`} />
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-8 border border-gray-100 dark:border-gray-800 transition-colors">
+              <div className="flex items-center gap-3 mb-8">
+                <div className={`h-2 flex-1 rounded-full transition-all duration-300 ${step >= 1 ? "bg-indigo-600" : "bg-gray-100 dark:bg-gray-800"}`} />
+                <div className={`h-2 flex-1 rounded-full transition-all duration-300 ${step >= 2 ? "bg-indigo-600" : "bg-gray-100 dark:bg-gray-800"}`} />
+                <div className={`h-2 flex-1 rounded-full transition-all duration-300 ${step >= 3 ? "bg-indigo-600" : "bg-gray-100 dark:bg-gray-800"}`} />
               </div>
               {step === 1 && (
-                <div className="space-y-4">
-                  <h2 className="text-xl font-bold text-gray-900">Attendee Details</h2>
-                  {!canBook && <p className="text-sm text-red-600">Booking is unavailable for this event.</p>}
+                <div className="space-y-6">
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Attendee Details</h2>
+                  {!canBook && <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-3 rounded-lg border border-red-100 dark:border-red-900/30">Booking is unavailable for this event.</p>}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Full Name</label>
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Full Name</label>
                     <input
                       type="text"
                       value={details.attendeeName}
                       onChange={(e) => handleDetailChange("attendeeName", e.target.value)}
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-all"
+                      placeholder="Your full name"
                     />
                   </div>
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Email</label>
+                      <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Email</label>
                       <input
                         type="email"
                         value={details.attendeeEmail}
                         onChange={(e) => handleDetailChange("attendeeEmail", e.target.value)}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-all"
+                        placeholder="you@example.com"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Phone</label>
-                      <input
-                        type="tel"
-                        value={details.attendeePhone}
-                        onChange={(e) => handleDetailChange("attendeePhone", e.target.value)}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                      />
+                      <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                        Phone <span className="text-xs text-gray-400 dark:text-gray-500 font-normal ml-1">(10 digits)</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="tel"
+                          value={details.attendeePhone}
+                          onChange={(e) => handleDetailChange("attendeePhone", e.target.value)}
+                          maxLength="10"
+                          placeholder="10-digit number"
+                          className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-all ${
+                            details.attendeePhone?.length === 10 ? "border-green-300 dark:border-green-900/50" : "border-gray-200 dark:border-gray-700"
+                          }`}
+                        />
+                        {details.attendeePhone?.length > 0 && (
+                          <span className={`absolute right-4 top-3.5 text-[10px] font-bold ${
+                            details.attendeePhone.length === 10 ? "text-green-600 dark:text-green-400" : "text-gray-400 dark:text-gray-500"
+                          }`}>
+                            {details.attendeePhone.length}/10
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Promo Code</label>
-                    <div className="mt-1 flex gap-2">
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Promo Code</label>
+                    <div className="flex gap-2">
                       <input
                         type="text"
                         value={details.promoCode}
                         onChange={(e) => handleDetailChange("promoCode", e.target.value.toUpperCase())}
                         placeholder="Enter code"
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        className="flex-1 px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-all"
                         disabled={appliedVoucher}
                       />
                       <button
                         type="button"
                         onClick={handleApplyVoucher}
-                        className={`px-4 py-2 rounded-md transition ${
+                        className={`px-6 py-3 rounded-xl font-bold transition-all ${
                           appliedVoucher
-                            ? "bg-emerald-100 text-emerald-700 cursor-default"
-                            : "bg-gray-800 text-white hover:bg-gray-700"
+                            ? "bg-emerald-100 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 cursor-default"
+                            : "bg-gray-900 dark:bg-gray-800 text-white hover:bg-black dark:hover:bg-gray-700"
                         }`}
                         disabled={!details.promoCode || appliedVoucher}
                       >
@@ -311,37 +333,40 @@ const BookingPage = () => {
                       </button>
                     </div>
                     {appliedVoucher && (
-                      <p className="mt-1 text-xs text-emerald-600 font-medium">
-                        ✓ Discount of ₹{formatPrice(discount)} applied!
+                      <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+                        Discount of ₹{formatPrice(discount)} applied!
                       </p>
                     )}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Notes</label>
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Special Notes</label>
                     <textarea
                       rows={3}
                       value={details.notes}
                       onChange={(e) => handleDetailChange("notes", e.target.value)}
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-all"
+                      placeholder="Any special requests or notes?"
                     />
                   </div>
-                  <label className="flex items-center gap-2 text-sm text-gray-700">
+                  <label className="flex items-start gap-3 text-sm text-gray-600 dark:text-gray-400 cursor-pointer group">
                     <input
                       type="checkbox"
                       checked={details.acceptTerms}
                       onChange={(e) => handleDetailChange("acceptTerms", e.target.checked)}
+                      className="mt-1 w-4 h-4 text-indigo-600 border-gray-300 dark:border-gray-700 rounded focus:ring-indigo-500 bg-white dark:bg-gray-800"
                     />
-                    <span>I agree to the terms and conditions</span>
+                    <span className="group-hover:text-gray-900 dark:group-hover:text-gray-200 transition-colors">I agree to the terms and conditions and privacy policy of EventHub.</span>
                   </label>
-                  <div className="flex justify-between mt-4">
+                  <div className="flex justify-between items-center mt-8 pt-6 border-t dark:border-gray-800">
                     <button
-                      className="px-4 py-2 rounded-md bg-gray-100"
+                      className="px-6 py-2.5 rounded-xl font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
                       onClick={() => navigate(-1)}
                     >
                       Back
                     </button>
                     <button
-                      className="px-4 py-2 rounded-md bg-indigo-600 text-white disabled:opacity-50"
+                      className="px-8 py-3 rounded-xl bg-indigo-600 text-white font-bold shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:grayscale disabled:hover:translate-y-0"
                       onClick={() => setStep(2)}
                       disabled={!attendeeValid || !canBook}
                     >
@@ -351,49 +376,56 @@ const BookingPage = () => {
                 </div>
               )}
               {step === 2 && (
-                <div className="space-y-6">
-                  <h2 className="text-xl font-bold text-gray-900">Tickets & Payment</h2>
+                <div className="space-y-8">
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Tickets & Payment</h2>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Quantity</label>
-                    <div className="mt-2 flex items-center gap-3">
-                      <button
-                        className="px-3 py-2 rounded-md bg-gray-100 hover:bg-gray-200"
-                        onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                        disabled={!canBook}
-                      >
-                        −
-                      </button>
-                      <input
-                        type="number"
-                        min={1}
-                        max={maxQty}
-                        value={quantity}
-                        onChange={(e) => {
-                          const v = Number(e.target.value);
-                          if (!Number.isNaN(v)) setQuantity(Math.min(maxQty, Math.max(1, v)));
-                        }}
-                        className="w-16 text-center px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                        disabled={!canBook}
-                      />
-                      <button
-                        className="px-3 py-2 rounded-md bg-gray-100 hover:bg-gray-200"
-                        onClick={() => setQuantity((q) => Math.min(maxQty, q + 1))}
-                        disabled={!canBook}
-                      >
-                        +
-                      </button>
-                      <span className="text-sm text-gray-500">Max {maxQty}</span>
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-3">Number of Tickets</label>
+                    <div className="flex items-center gap-6">
+                      <div className="flex items-center bg-gray-50 dark:bg-gray-800 rounded-2xl p-1 border border-gray-200 dark:border-gray-700">
+                        <button
+                          className="w-12 h-12 flex items-center justify-center rounded-xl hover:bg-white dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-all disabled:opacity-30"
+                          onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                          disabled={!canBook || quantity <= 1}
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M20 12H4" /></svg>
+                        </button>
+                        <input
+                          type="number"
+                          min={1}
+                          max={maxQty}
+                          value={quantity}
+                          onChange={(e) => {
+                            const v = Number(e.target.value);
+                            if (!Number.isNaN(v)) setQuantity(Math.min(maxQty, Math.max(1, v)));
+                          }}
+                          className="w-16 text-center font-bold text-lg bg-transparent border-none focus:ring-0 text-gray-900 dark:text-white"
+                          disabled={!canBook}
+                        />
+                        <button
+                          className="w-12 h-12 flex items-center justify-center rounded-xl hover:bg-white dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-all disabled:opacity-30"
+                          onClick={() => setQuantity((q) => Math.min(maxQty, q + 1))}
+                          disabled={!canBook || quantity >= maxQty}
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" /></svg>
+                        </button>
+                      </div>
+                      <div className="text-sm">
+                        <p className="text-gray-500 dark:text-gray-400 font-medium">Available Seats</p>
+                        <p className="text-gray-900 dark:text-white font-bold text-lg">{maxQty}</p>
+                      </div>
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Payment Method</label>
-                    <div className="mt-2 grid grid-cols-2 gap-3">
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-3">Payment Method</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       {Object.keys(methodFields).map((m) => (
                         <button
                           key={m}
                           type="button"
-                          className={`px-3 py-2 rounded-md border ${
-                            paymentMethod === m ? "border-indigo-600 bg-indigo-50 text-indigo-700" : "border-gray-300"
+                          className={`px-4 py-3 rounded-xl border-2 font-bold text-sm transition-all ${
+                            paymentMethod === m 
+                              ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400" 
+                              : "border-gray-100 dark:border-gray-800 text-gray-500 dark:text-gray-400 hover:border-gray-200 dark:hover:border-gray-700"
                           }`}
                           onClick={() => setPaymentMethod(m)}
                           disabled={!canBook}
@@ -404,22 +436,26 @@ const BookingPage = () => {
                     </div>
                   </div>
                   {paymentMethod === "UPI" && (
-                    <div className="p-4 border rounded-lg">
-                      <div className="flex items-center gap-4">
-                        {qrDataUrl ? (
-                          <img src={qrDataUrl} alt="UPI QR" className="w-28 h-28 rounded border" />
-                        ) : (
-                          <div className="w-28 h-28 bg-gray-200 rounded border" />
-                        )}
-                        <div className="text-sm text-gray-700">
-                          <p className="font-semibold">Scan with your UPI app</p>
-                          <p className="text-xs text-gray-500 mt-1">Amount: ₹{formatPrice(total)}</p>
-                          {details.upiId && (
-                            <div className="mt-2 flex items-center gap-2">
-                              <span className="text-xs bg-gray-100 px-2 py-1 rounded">{details.upiId}</span>
+                    <div className="p-6 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-2xl">
+                      <div className="flex flex-col sm:flex-row items-center gap-6">
+                        <div className="bg-white p-2 rounded-xl shadow-inner shrink-0">
+                          {qrDataUrl ? (
+                            <img src={qrDataUrl} alt="UPI QR" className="w-32 h-32 rounded-lg" />
+                          ) : (
+                            <div className="w-32 h-32 bg-gray-100 rounded-lg flex items-center justify-center text-gray-300">
+                              <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" /></svg>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 text-center sm:text-left">
+                          <p className="font-bold text-gray-900 dark:text-white mb-1">Scan to Pay</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Open any UPI app to scan and pay the total amount.</p>
+                          <div className="flex items-center justify-center sm:justify-start gap-2">
+                            <span className="text-2xl font-black text-gray-900 dark:text-white">₹{formatPrice(total)}</span>
+                            {details.upiId && (
                               <button
                                 type="button"
-                                className="text-xs px-2 py-1 rounded bg-indigo-600 text-white"
+                                className="ml-2 px-3 py-1.5 text-xs font-bold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-all shadow-sm"
                                 onClick={() => {
                                   const link = `upi://pay?pa=${details.upiId}&pn=${details.attendeeName || "Attendee"}&am=${Number(total || 0).toFixed(2)}&tn=${encodeURIComponent(`Booking: ${event?.title || "Event"}`)}`;
                                   navigator.clipboard?.writeText(link);
@@ -428,29 +464,27 @@ const BookingPage = () => {
                               >
                                 Copy Link
                               </button>
-                            </div>
-                          )}
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
                   )}
                   {fields.length > 0 && (
-                    <div className="space-y-4">
+                    <div className="grid sm:grid-cols-2 gap-4">
                       {fields.map((f) => (
-                        <div key={f.name}>
-                          <label className="block text-sm font-medium text-gray-700">{f.label}</label>
+                        <div key={f.name} className={f.name === "cardNumber" || f.name === "upiId" ? "sm:col-span-2" : ""}>
+                          <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">{f.label}</label>
                           {f.type === "select" ? (
                             <select
                               value={details[f.name] || ""}
                               onChange={(e) => handleDetailChange(f.name, e.target.value)}
-                              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-all"
                               disabled={!canBook}
                             >
-                              <option value="">Select</option>
+                              <option value="">Select {f.label}</option>
                               {(f.options || []).map((opt) => (
-                                <option key={opt} value={opt}>
-                                  {opt}
-                                </option>
+                                <option key={opt} value={opt}>{opt}</option>
                               ))}
                             </select>
                           ) : (
@@ -460,7 +494,7 @@ const BookingPage = () => {
                               onChange={(e) => handleDetailChange(f.name, e.target.value)}
                               placeholder={f.placeholder}
                               maxLength={f.maxLength}
-                              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-all"
                               disabled={!canBook}
                             />
                           )}
@@ -468,90 +502,104 @@ const BookingPage = () => {
                       ))}
                     </div>
                   )}
-                  <div className="flex items-center justify-between border-t pt-4">
+                  <div className="flex items-center justify-between border-t dark:border-gray-800 pt-8">
                     <div>
                       {discount > 0 && (
                         <div className="mb-1">
-                          <p className="text-xs text-gray-500 line-through">Subtotal: ₹{formatPrice(subtotal)}</p>
-                          <p className="text-xs text-emerald-600">Discount: -₹{formatPrice(discount)}</p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500 line-through font-bold">₹{formatPrice(subtotal)}</p>
+                          <p className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">Save ₹{formatPrice(discount)}</p>
                         </div>
                       )}
-                      <p className="text-sm text-gray-500">Total</p>
-                      <p className="text-xl font-bold text-gray-900">₹{formatPrice(total)}</p>
+                      <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Total Amount</p>
+                      <p className="text-3xl font-black text-gray-900 dark:text-white">₹{formatPrice(total)}</p>
                     </div>
                     <div className="flex gap-3">
-                      <button className="px-4 py-2 rounded-md bg-gray-100" onClick={() => setStep(1)}>
+                      <button className="px-6 py-3 rounded-xl font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all" onClick={() => setStep(1)}>
                         Back
                       </button>
                       <button
-                        className="px-4 py-2 rounded-md bg-indigo-600 text-white disabled:opacity-50"
+                        className="px-8 py-3 rounded-xl bg-indigo-600 text-white font-bold shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:grayscale disabled:hover:translate-y-0"
                         onClick={() => setStep(3)}
                         disabled={!canBook || quantity < 1 || quantity > maxQty}
                       >
-                        Continue
+                        Review
                       </button>
                     </div>
                   </div>
                 </div>
               )}
               {step === 3 && (
-                <div className="space-y-6">
-                  <h2 className="text-xl font-bold text-gray-900">Review & Confirm</h2>
-                  <div className="border rounded-lg p-4">
-                    <div className="grid sm:grid-cols-2 gap-4 text-sm">
+                <div className="space-y-8">
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Review & Confirm</h2>
+                  <div className="bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 space-y-6 transition-colors">
+                    <div className="grid sm:grid-cols-2 gap-y-6 gap-x-8 text-sm">
                       <div>
-                        <p className="text-gray-500">Event</p>
-                        <p className="font-semibold">{event.title}</p>
+                        <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">Event</p>
+                        <p className="font-bold text-gray-900 dark:text-white text-base">{event.title}</p>
                       </div>
                       <div>
-                        <p className="text-gray-500">Date</p>
-                        <p className="font-semibold">{new Date(event.startDate).toLocaleDateString()}</p>
+                        <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">Date</p>
+                        <p className="font-bold text-gray-900 dark:text-white text-base">{new Date(event.startDate).toLocaleDateString()}</p>
                       </div>
                       <div>
-                        <p className="text-gray-500">Attendee</p>
-                        <p className="font-semibold">{details.attendeeName}</p>
+                        <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">Attendee</p>
+                        <p className="font-bold text-gray-900 dark:text-white text-base">{details.attendeeName}</p>
                       </div>
                       <div>
-                        <p className="text-gray-500">Contact</p>
-                        <p className="font-semibold">{details.attendeeEmail} • {details.attendeePhone}</p>
+                        <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">Contact Info</p>
+                        <p className="font-bold text-gray-900 dark:text-white">{details.attendeeEmail}</p>
+                        <p className="text-gray-500 dark:text-gray-400 font-medium">{details.attendeePhone}</p>
                       </div>
                       <div>
-                        <p className="text-gray-500">Quantity</p>
-                        <p className="font-semibold">{quantity}</p>
+                        <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">Tickets</p>
+                        <p className="font-bold text-gray-900 dark:text-white text-base">{quantity} × ₹{formatPrice(unitPrice)}</p>
                       </div>
                       <div>
-                        <p className="text-gray-500">Payment Method</p>
-                        <p className="font-semibold">{paymentMethod}</p>
+                        <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">Payment</p>
+                        <p className="font-bold text-gray-900 dark:text-white text-base">{paymentMethod}</p>
                       </div>
                     </div>
                     {appliedVoucher && (
-                      <div className="mt-2 p-2 bg-emerald-50 rounded border border-emerald-100 flex justify-between items-center">
-                        <span className="text-xs text-emerald-700 font-medium">Voucher Applied: {appliedVoucher}</span>
-                        <span className="text-xs text-emerald-700 font-bold">-₹{formatPrice(discount)}</span>
+                      <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-100 dark:border-emerald-800 flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                          <svg className="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.266 0 .52.105.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" /></svg>
+                          <span className="text-xs text-emerald-700 dark:text-emerald-400 font-bold">Voucher: {appliedVoucher}</span>
+                        </div>
+                        <span className="text-xs text-emerald-700 dark:text-emerald-400 font-black">-₹{formatPrice(discount)}</span>
                       </div>
                     )}
-                    {details.notes && <p className="text-xs text-gray-500 mt-1">Notes: {details.notes}</p>}
+                    {details.notes && (
+                      <div className="pt-4 border-t dark:border-gray-700">
+                        <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">Additional Notes</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 italic">"{details.notes}"</p>
+                      </div>
+                    )}
                   </div>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between border-t dark:border-gray-800 pt-8">
                     <div>
-                      {discount > 0 && (
-                        <div className="mb-1 text-right">
-                          <p className="text-xs text-gray-400 line-through">₹{formatPrice(subtotal)}</p>
-                        </div>
-                      )}
-                      <p className="text-sm text-gray-500">Total</p>
-                      <p className="text-2xl font-bold text-gray-900">₹{formatPrice(total)}</p>
+                      <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">Final Total</p>
+                      <p className="text-4xl font-black text-gray-900 dark:text-white">₹{formatPrice(total)}</p>
                     </div>
                     <div className="flex gap-3">
-                      <button className="px-4 py-2 rounded-md bg-gray-100" onClick={() => setStep(2)}>
+                      <button className="px-6 py-3 rounded-xl font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all" onClick={() => setStep(2)}>
                         Back
                       </button>
                       <button
-                        className="px-5 py-2.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-8 py-3 rounded-xl bg-emerald-600 text-white font-bold shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:grayscale disabled:hover:translate-y-0 flex items-center gap-2"
                         onClick={handleBook}
                         disabled={!canBook || submitting || !attendeeValid}
                       >
-                        {submitting ? "Processing..." : "Confirm Booking"}
+                        {submitting ? (
+                          <>
+                            <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                            <span>Processing...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>Confirm Booking</span>
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" /></svg>
+                          </>
+                        )}
                       </button>
                     </div>
                   </div>
