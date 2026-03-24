@@ -18,9 +18,39 @@ const Login = () => {
   });
 
   const [showPassword, setShowPassword] = useState(false);
+  const [twoFactorStep, setTwoFactorStep] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [emailFor2FA, setEmailFor2FA] = useState("");
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleVerify2FA = async (e) => {
+    e.preventDefault();
+    setLocalLoading(true);
+
+    try {
+      const res = await axios.post(
+        "http://localhost:3000/api/v1/user/verify-2fa",
+        { email: emailFor2FA, otp },
+        { withCredentials: true }
+      );
+
+      if (res.data.success) {
+        dispatch(setUser(res.data.loggedInUser));
+        toast.success(res.data.message || "Login successful!");
+        const role = res.data.loggedInUser?.role;
+        if (role === 'organizer') navigate('/organizer');
+        else if (role === 'user') navigate('/dashboard');
+        else if (role === 'admin') navigate('/admin');
+        else navigate('/');
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Verification failed");
+    } finally {
+      setLocalLoading(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -35,7 +65,12 @@ const Login = () => {
        );
  
        if (res.data.success) {
-         console.log(res.data);
+         if (res.data.twoFactorRequired) {
+           setTwoFactorStep(true);
+           setEmailFor2FA(res.data.email);
+           toast.success("Verification code sent to your email");
+           return;
+         }
          
          dispatch(setUser(res.data.loggedInUser));
          toast.success("Login successful!");
@@ -109,7 +144,7 @@ const Login = () => {
       </div>
 
       {/* Right Side - Login Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-gray-50">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-gray-50 dark:bg-gray-950 transition-colors duration-300">
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
           <div className="lg:hidden flex justify-center mb-8">
@@ -122,20 +157,75 @@ const Login = () => {
 
           {/* Form Header */}
           <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-gray-800 mb-2">Sign In</h2>
-            <p className="text-gray-500">Access your event management dashboard</p>
+            <h2 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">
+              {twoFactorStep ? "Two-Step Verification" : "Sign In"}
+            </h2>
+            <p className="text-gray-500 dark:text-gray-400">
+              {twoFactorStep 
+                ? `Enter the code sent to ${emailFor2FA}` 
+                : "Access your event management dashboard"}
+            </p>
           </div>
 
-          {/* Login Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
+          {twoFactorStep ? (
+            /* 2FA Form */
+            <form onSubmit={handleVerify2FA} className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Verification Code
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <svg className="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                  </div>
+                  <input
+                    type="text"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value)}
+                    placeholder="Enter 6-digit code"
+                    maxLength="6"
+                    className="w-full pl-12 pr-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm font-bold tracking-widest text-center"
+                    required
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading || otp.length < 6}
+                className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 transform hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? (
+                  <svg className="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                ) : (
+                  "Verify & Sign In"
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTwoFactorStep(false)}
+                className="w-full text-sm font-medium text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+              >
+                Go back to login
+              </button>
+            </form>
+          ) : (
+            /* Login Form */
+            <form onSubmit={handleSubmit} className="space-y-6">
             {/* Email Field */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Email Address
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
                   </svg>
                 </div>
@@ -145,7 +235,7 @@ const Login = () => {
                   value={formData.email}
                   placeholder="you@example.com"
                   onChange={handleChange}
-                  className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm"
+                  className="w-full pl-12 pr-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm"
                   required
                 />
               </div>
@@ -153,12 +243,12 @@ const Login = () => {
 
             {/* Password Field */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Password
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                   </svg>
                 </div>
@@ -168,13 +258,13 @@ const Login = () => {
                   value={formData.password}
                   placeholder="Enter your password"
                   onChange={handleChange}
-                  className="w-full pl-12 pr-12 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm"
+                  className="w-full pl-12 pr-12 py-3 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                 >
                   {showPassword ? (
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -192,47 +282,47 @@ const Login = () => {
 
             {/* Role Selection */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                 Login as
               </label>
               <div className="space-y-2">
-                <label className="flex items-center p-2.5 border-2 border-gray-200 rounded-lg cursor-pointer transition-all" style={{borderColor: formData.role === "user" ? "#7c3aed" : ""}}>
+                <label className="flex items-center p-2.5 border-2 border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer transition-all" style={{borderColor: formData.role === "user" ? "#7c3aed" : ""}}>
                   <input
                     type="radio"
                     name="role"
                     value="user"
                     checked={formData.role === "user"}
                     onChange={handleChange}
-                    className="w-4 h-4 text-purple-600 border-gray-300 focus:ring-purple-500"
+                    className="w-4 h-4 text-purple-600 border-gray-300 dark:border-gray-600 focus:ring-purple-500"
                   />
                   <div className="ml-3">
-                    <p className="text-sm font-medium text-gray-700">User / Attendee</p>
+                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">User / Attendee</p>
                   </div>
                 </label>
-                <label className="flex items-center p-2.5 border-2 border-gray-200 rounded-lg cursor-pointer transition-all" style={{borderColor: formData.role === "organizer" ? "#7c3aed" : ""}}>
+                <label className="flex items-center p-2.5 border-2 border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer transition-all" style={{borderColor: formData.role === "organizer" ? "#7c3aed" : ""}}>
                   <input
                     type="radio"
                     name="role"
                     value="organizer"
                     checked={formData.role === "organizer"}
                     onChange={handleChange}
-                    className="w-4 h-4 text-purple-600 border-gray-300 focus:ring-purple-500"
+                    className="w-4 h-4 text-purple-600 border-gray-300 dark:border-gray-600 focus:ring-purple-500"
                   />
                   <div className="ml-3">
-                    <p className="text-sm font-medium text-gray-700">Organizer</p>
+                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Organizer</p>
                   </div>
                 </label>
-                <label className="flex items-center p-2.5 border-2 border-gray-200 rounded-lg cursor-pointer transition-all" style={{borderColor: formData.role === "admin" ? "#7c3aed" : ""}}>
+                <label className="flex items-center p-2.5 border-2 border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer transition-all" style={{borderColor: formData.role === "admin" ? "#7c3aed" : ""}}>
                   <input
                     type="radio"
                     name="role"
                     value="admin"
                     checked={formData.role === "admin"}
                     onChange={handleChange}
-                    className="w-4 h-4 text-purple-600 border-gray-300 focus:ring-purple-500"
+                    className="w-4 h-4 text-purple-600 border-gray-300 dark:border-gray-600 focus:ring-purple-500"
                   />
                   <div className="ml-3">
-                    <p className="text-sm font-medium text-gray-700">Admin</p>
+                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Admin</p>
                   </div>
                 </label>
               </div>
@@ -241,10 +331,10 @@ const Login = () => {
             {/* Remember Me & Forgot Password */}
             <div className="flex items-center justify-between">
               <label className="flex items-center">
-                <input type="checkbox" className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500" />
-                <span className="ml-2 text-sm text-gray-600">Remember me</span>
+                <input type="checkbox" className="w-4 h-4 text-purple-600 border-gray-300 dark:border-gray-600 rounded focus:ring-purple-500" />
+                <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Remember me</span>
               </label>
-              <Link to="/forgot-password" className="text-sm font-medium text-purple-600 hover:text-purple-500 transition-colors">
+              <Link to="/forgot-password" className="text-sm font-medium text-purple-600 dark:text-purple-400 hover:text-purple-500 dark:hover:text-purple-300 transition-colors">
                 Forgot password?
               </Link>
             </div>
@@ -273,21 +363,22 @@ const Login = () => {
               )}
             </button>
           </form>
+          )}
 
           {/* Divider */}
           <div className="relative my-8">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200"></div>
+              <div className="w-full border-t border-gray-200 dark:border-gray-700"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-gray-50 text-gray-500">New to EventHub?</span>
+              <span className="px-4 bg-gray-50 dark:bg-gray-950 text-gray-500 dark:text-gray-400">New to EventHub?</span>
             </div>
           </div>
 
           {/* Register Link */}
           <Link
             to="/register"
-            className="w-full py-3 px-4 border-2 border-purple-200 text-purple-600 font-semibold rounded-xl hover:bg-purple-50 transition-all duration-200 flex items-center justify-center gap-2"
+            className="w-full py-3 px-4 border-2 border-purple-200 dark:border-purple-900/50 text-purple-600 dark:text-purple-400 font-semibold rounded-xl hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all duration-200 flex items-center justify-center gap-2"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
@@ -296,11 +387,11 @@ const Login = () => {
           </Link>
 
           {/* Footer */}
-          <p className="mt-8 text-center text-sm text-gray-500">
+          <p className="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
             By signing in, you agree to our{" "}
-            <a href="#" className="text-purple-600 hover:underline">Terms of Service</a>
+            <a href="#" className="text-purple-600 dark:text-purple-400 hover:underline">Terms of Service</a>
             {" "}and{" "}
-            <a href="#" className="text-purple-600 hover:underline">Privacy Policy</a>
+            <a href="#" className="text-purple-600 dark:text-purple-400 hover:underline">Privacy Policy</a>
           </p>
         </div>
       </div>

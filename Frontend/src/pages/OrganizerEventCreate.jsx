@@ -108,211 +108,297 @@ export default function OrganizerEventCreate() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors duration-300">
       <Navbar />
-      <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border-b">
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900">Create Event</h1>
-          <p className="text-gray-600 mt-1">Fill in the details and preview before publishing.</p>
+      <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/20 dark:to-purple-950/20 border-b dark:border-gray-800">
+        <div className="max-w-7xl mx-auto px-6 py-10">
+          <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white">Create New Event</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">Bring your event to life. Fill in the details below to get started.</p>
         </div>
       </div>
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        <div className="grid lg:grid-cols-3 gap-8">
+      <main className="max-w-7xl mx-auto px-6 py-10">
+        <div className="grid lg:grid-cols-3 gap-10">
           <section className="lg:col-span-2">
-            <div className="bg-white rounded-2xl shadow p-6 space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                <input
-                  value={form.title}
-                  onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                  placeholder="Event title"
-                />
-                {errors.title && <p className="mt-1 text-xs text-red-600">{errors.title}</p>}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                <textarea
-                  rows={5}
-                  value={form.description}
-                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                  placeholder="Event description"
-                />
-              </div>
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                  <select
-                    value={form.categoryId}
-                    onChange={(e) => setForm((f) => ({ ...f, categoryId: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                  >
-                    <option value="">Select</option>
-                    {categories.map((c) => (
-                      <option key={c._id} value={c._id}>{c.name}</option>
-                    ))}
-                  </select>
-                  {errors.categoryId && <p className="mt-1 text-xs text-red-600">{errors.categoryId}</p>}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Paid</label>
-                  <select
-                    value={form.isPaid ? "paid" : "free"}
-                    onChange={(e) => setForm((f) => ({ ...f, isPaid: e.target.value === "paid" }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                  >
-                    <option value="free">Free</option>
-                    <option value="paid">Paid</option>
-                  </select>
-                </div>
-              </div>
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-                  <input
-                    type="date"
-                    value={form.startDate}
-                    onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                  />
-                  {errors.startDate && <p className="mt-1 text-xs text-red-600">{errors.startDate}</p>}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-                  <input
-                    type="date"
-                    value={form.endDate}
-                    onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                  />
-                  {errors.endDate && <p className="mt-1 text-xs text-red-600">{errors.endDate}</p>}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
-                  <input
-                    type="time"
-                    value={form.startTime}
-                    onChange={(e) => setForm((f) => ({ ...f, startTime: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
-                  <input
-                    type="time"
-                    value={form.endTime}
-                    onChange={(e) => setForm((f) => ({ ...f, endTime: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                  />
-                </div>
-              </div>
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Venue</label>
-                  <input
-                    value={form.venue}
-                    onChange={(e) => setForm((f) => ({ ...f, venue: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                    placeholder="Venue name"
-                  />
-                  {errors.venue && <p className="mt-1 text-xs text-red-600">{errors.venue}</p>}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
-                  <input
-                    value={form.city}
-                    onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                    placeholder="City"
-                  />
-                  {errors.city && <p className="mt-1 text-xs text-red-600">{errors.city}</p>}
-                </div>
-              </div>
-              <div className="grid sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Total Seats</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={form.totalSeats}
-                    onChange={(e) => setForm((f) => ({ ...f, totalSeats: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                  />
-                  <p className="mt-1 text-xs text-gray-500">Must be a positive number.</p>
-                  {errors.totalSeats && <p className="mt-1 text-xs text-red-600">{errors.totalSeats}</p>}
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Price (₹)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={form.price}
-                    onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                    disabled={!form.isPaid}
-                  />
-                  <p className="mt-1 text-xs text-gray-500">Set only for paid events.</p>
-                  {errors.price && <p className="mt-1 text-xs text-red-600">{errors.price}</p>}
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Banner Image</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  ref={bannerFileRef}
-                  onChange={handleFile}
-                  className="block w-full text-sm text-gray-700"
-                />
-              </div>
-              <div className="flex justify-end gap-2">
-                <button
-                  className="px-4 py-2 rounded-md border border-gray-300"
-                  onClick={() => navigate("/organizer")}
-                  disabled={saving}
-                >
-                  Cancel
-                </button>
-                <button
-                  className="px-4 py-2 rounded-md bg-indigo-600 text-white disabled:opacity-50"
-                  onClick={submit}
-                  disabled={saving || !isValid}
-                >
-                  {saving ? "Creating..." : "Create Event"}
-                </button>
-              </div>
-            </div>
-          </section>
-          <aside className="lg:col-span-1">
-            <div className="sticky top-24 space-y-6">
-              <div className="bg-white rounded-2xl shadow overflow-hidden">
-                <div className="h-40 bg-gray-100">
-                  {bannerPreview ? (
-                    <img src={bannerPreview} alt="preview" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-indigo-100 to-purple-100" />
-                  )}
-                </div>
-                <div className="p-5 text-sm">
-                  <p className="text-xs text-gray-500">Preview</p>
-                  <p className="mt-1 text-base font-semibold text-gray-900">{form.title || "Untitled Event"}</p>
-                  <p className="mt-2 text-gray-600 line-clamp-3">{form.description || "No description"}</p>
-                  <div className="mt-4 grid grid-cols-2 gap-3">
+            <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-sm border dark:border-gray-800 p-8 space-y-8">
+              <div className="space-y-6">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <span className="w-8 h-8 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg flex items-center justify-center text-sm">1</span>
+                  Basic Information
+                </h3>
+                <div className="grid gap-6">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-2 ml-1">Event Title</label>
+                    <input
+                      value={form.title}
+                      onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                      className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                      placeholder="Give your event a catchy name"
+                    />
+                    {errors.title && <p className="mt-2 text-xs font-medium text-red-500 flex items-center gap-1">
+                      <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+                      {errors.title}
+                    </p>}
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-2 ml-1">Description</label>
+                    <textarea
+                      rows={5}
+                      value={form.description}
+                      onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                      className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all resize-none"
+                      placeholder="Tell people what your event is about..."
+                    />
+                  </div>
+                  <div className="grid sm:grid-cols-2 gap-6">
                     <div>
-                      <p className="text-xs text-gray-500">Date</p>
-                      <p className="font-medium text-gray-900">{form.startDate || "-"}</p>
+                      <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-2 ml-1">Category</label>
+                      <select
+                        value={form.categoryId}
+                        onChange={(e) => setForm((f) => ({ ...f, categoryId: e.target.value }))}
+                        className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 transition-all"
+                      >
+                        <option value="">Select Category</option>
+                        {categories.map((c) => (
+                          <option key={c._id} value={c._id}>{c.name}</option>
+                        ))}
+                      </select>
+                      {errors.categoryId && <p className="mt-2 text-xs font-medium text-red-500">{errors.categoryId}</p>}
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">Time</p>
-                      <p className="font-medium text-gray-900">{form.startTime || "-"}</p>
-                    </div>
-                    <div className="col-span-2">
-                      <p className="text-xs text-gray-500">Venue</p>
-                      <p className="font-medium text-gray-900">{[form.venue, form.city].filter(Boolean).join(", ") || "-"}</p>
+                      <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-2 ml-1">Pricing Model</label>
+                      <select
+                        value={form.isPaid ? "paid" : "free"}
+                        onChange={(e) => setForm((f) => ({ ...f, isPaid: e.target.value === "paid" }))}
+                        className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 transition-all"
+                      >
+                        <option value="free">Free Event</option>
+                        <option value="paid">Paid Event</option>
+                      </select>
                     </div>
                   </div>
                 </div>
+
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2 pt-4">
+                  <span className="w-8 h-8 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-lg flex items-center justify-center text-sm">2</span>
+                  Date & Time
+                </h3>
+                <div className="grid sm:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-2 ml-1">Start Date</label>
+                    <input
+                      type="date"
+                      value={form.startDate}
+                      onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))}
+                      className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 transition-all"
+                    />
+                    {errors.startDate && <p className="mt-2 text-xs font-medium text-red-500">{errors.startDate}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-2 ml-1">End Date</label>
+                    <input
+                      type="date"
+                      value={form.endDate}
+                      onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))}
+                      className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 transition-all"
+                    />
+                    {errors.endDate && <p className="mt-2 text-xs font-medium text-red-500">{errors.endDate}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-2 ml-1">Start Time</label>
+                    <input
+                      type="time"
+                      value={form.startTime}
+                      onChange={(e) => setForm((f) => ({ ...f, startTime: e.target.value }))}
+                      className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-2 ml-1">End Time</label>
+                    <input
+                      type="time"
+                      value={form.endTime}
+                      onChange={(e) => setForm((f) => ({ ...f, endTime: e.target.value }))}
+                      className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 transition-all"
+                    />
+                  </div>
+                </div>
+
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2 pt-4">
+                  <span className="w-8 h-8 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-lg flex items-center justify-center text-sm">3</span>
+                  Location & Capacity
+                </h3>
+                <div className="grid sm:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-2 ml-1">Venue Name</label>
+                    <input
+                      value={form.venue}
+                      onChange={(e) => setForm((f) => ({ ...f, venue: e.target.value }))}
+                      className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 transition-all"
+                      placeholder="E.G. Grand Ballroom"
+                    />
+                    {errors.venue && <p className="mt-2 text-xs font-medium text-red-500">{errors.venue}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-2 ml-1">City</label>
+                    <input
+                      value={form.city}
+                      onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
+                      className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 transition-all"
+                      placeholder="E.G. Mumbai"
+                    />
+                    {errors.city && <p className="mt-2 text-xs font-medium text-red-500">{errors.city}</p>}
+                  </div>
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-2 ml-1">Total Capacity</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={form.totalSeats}
+                      onChange={(e) => setForm((f) => ({ ...f, totalSeats: e.target.value }))}
+                      className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 transition-all"
+                      placeholder="Number of available tickets"
+                    />
+                    {errors.totalSeats && <p className="mt-2 text-xs font-medium text-red-500">{errors.totalSeats}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-2 ml-1">Ticket Price (₹)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={form.price}
+                      onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
+                      className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      placeholder="0"
+                      disabled={!form.isPaid}
+                    />
+                    {errors.price && <p className="mt-2 text-xs font-medium text-red-500">{errors.price}</p>}
+                  </div>
+                </div>
+
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2 pt-4">
+                  <span className="w-8 h-8 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-lg flex items-center justify-center text-sm">4</span>
+                  Media & Banner
+                </h3>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-2 ml-1">Event Banner</label>
+                  <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-200 dark:border-gray-700 border-dashed rounded-2xl hover:border-indigo-500 dark:hover:border-indigo-500 transition-colors">
+                    <div className="space-y-1 text-center">
+                      <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      <div className="flex text-sm text-gray-600 dark:text-gray-400">
+                        <label className="relative cursor-pointer bg-white dark:bg-gray-900 rounded-md font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 focus-within:outline-none">
+                          <span>Upload a file</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            ref={bannerFileRef}
+                            onChange={handleFile}
+                            className="sr-only"
+                          />
+                        </label>
+                        <p className="pl-1">or drag and drop</p>
+                      </div>
+                      <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-4 pt-8">
+                  <button
+                    className="flex-1 px-6 py-4 rounded-2xl border-2 border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-300 font-bold hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
+                    onClick={() => navigate("/organizer")}
+                    disabled={saving}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="flex-[2] px-6 py-4 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 disabled:opacity-50 transition-all transform hover:-translate-y-0.5 active:scale-95"
+                    onClick={submit}
+                    disabled={saving || !isValid}
+                  >
+                    {saving ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Creating Event...
+                      </span>
+                    ) : "Publish Event"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <aside className="lg:col-span-1">
+            <div className="sticky top-28 space-y-6">
+              <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-sm border dark:border-gray-800 overflow-hidden">
+                <div className="p-5 border-b dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50">
+                  <h4 className="font-bold text-gray-900 dark:text-white uppercase tracking-widest text-xs">Live Preview</h4>
+                </div>
+                <div className="h-48 bg-gray-100 dark:bg-gray-800 relative">
+                  {bannerPreview ? (
+                    <img src={bannerPreview} alt="preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/20 dark:to-purple-900/20 flex items-center justify-center text-gray-300 dark:text-gray-700">
+                      <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                  )}
+                </div>
+                <div className="p-6 space-y-4">
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white line-clamp-2">{form.title || "Your Event Title"}</h2>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3">{form.description || "Describe your event to attract attendees..."}</p>
+                  
+                  <div className="space-y-3 pt-2">
+                    <div className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
+                      <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                      <span className="font-medium">{form.startDate || "Date TBD"}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
+                      <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <span className="font-medium">{form.startTime || "Time TBD"}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                      </div>
+                      <span className="font-medium line-clamp-1">{[form.venue, form.city].filter(Boolean).join(", ") || "Location TBD"}</span>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-2xl flex items-center justify-between">
+                    <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Ticket Price</span>
+                    <span className="text-lg font-bold text-gray-900 dark:text-white">
+                      {form.isPaid ? `₹${form.price || "0"}` : "FREE"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl p-6 text-white shadow-xl">
+                <h4 className="font-bold mb-2">Need Help?</h4>
+                <p className="text-indigo-100 text-xs leading-relaxed mb-4">Check our organizer guide for tips on how to create a successful event.</p>
+                <button className="w-full py-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl text-xs font-bold transition-all border border-white/20">
+                  Read Organizer Guide
+                </button>
               </div>
             </div>
           </aside>

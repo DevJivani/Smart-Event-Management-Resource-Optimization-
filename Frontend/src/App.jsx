@@ -1,49 +1,7 @@
-// import { RouterProvider, createBrowserRouter } from 'react-router-dom'
-// import Login from './pages/Login'
-// import Register from './pages/Register'
-// import Profile from './pages/Profile'
-// import Home from './components/Home'
-
-// const router = createBrowserRouter([
-//   {
-//     path: '/',
-//     element: <Home />
-//   },
-//   {
-//     path: '/login',
-//     element: <Login />
-//   },
-//   {
-//     path: '/register',
-//     element: <Register />
-//   },
-//   {
-//     path: '/profile',
-//     element: <Profile />
-//   },
-//   {
-//     path: '/my-events',
-//     element: <Profile />
-//   },
-//   {
-//     path: '/settings',
-//     element: <Profile />
-//   }
-// ])
-
-// function App() {
-//   return (
-//     <>
-//       <RouterProvider router={router} />
-//     </>
-//   )
-// }
-
-// export default App
-
-
 import { RouterProvider, createBrowserRouter } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
+import { useEffect } from 'react'
+import { useSelector } from 'react-redux'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Profile from './pages/Profile.jsx'
@@ -63,6 +21,15 @@ import OrganizerEventEdit from './pages/OrganizerEventEdit.jsx'
 import OrganizerEventCreate from './pages/OrganizerEventCreate.jsx'
 import CompletedEvents from './pages/CompletedEvents.jsx'
 import OrganizerVouchers from './pages/OrganizerVouchers.jsx'
+import ReviewPage from './pages/ReviewPage.jsx'
+import OrganizerMessages from './pages/OrganizerMessages.jsx'
+import About from './pages/About'
+import Contact from './pages/Contact'
+import PrivacyPolicy from './pages/PrivacyPolicy'
+import TermsConditions from './pages/TermsConditions'
+import Settings from './pages/Settings'
+import PublicProfile from './pages/PublicProfile'
+import OrganizerScanner from './pages/OrganizerScanner'
 
 const router = createBrowserRouter([
   {
@@ -98,20 +65,20 @@ const router = createBrowserRouter([
     element: <OrganizerEventCreate />
   },
   {
-    path: '/completed',
-    element: <CompletedEvents />
+    path: '/organizer/bookings',
+    element: <OrganizerBookings />
   },
   {
-    path: '/dashboard',
-    element: <UserDashboard />
+    path: '/organizer/vouchers',
+    element: <OrganizerVouchers />
   },
   {
-    path: '/book/:eventId',
-    element: <BookingPage />
+    path: '/organizer/messages',
+    element: <OrganizerMessages />
   },
   {
-    path: '/event/:eventId',
-    element: <EventDetails/>
+    path: '/organizer/scanner',
+    element: <OrganizerScanner />
   },
   {
     path: '/admin',
@@ -122,16 +89,52 @@ const router = createBrowserRouter([
     element: <AdminBookingsPage />
   },
   {
-    path: '/admin/bookings/:bookingId',
+    path: '/admin/bookings/:id',
     element: <AdminBookingDetails />
   },
   {
-    path: '/organizer/bookings',
-    element: <OrganizerBookings />
+    path: '/admin/reviews',
+    element: <ReviewPage />
   },
   {
-    path: '/organizer/vouchers',
-    element: <OrganizerVouchers />
+    path: '/dashboard',
+    element: <UserDashboard />
+  },
+  {
+    path: '/event/:eventId',
+    element: <EventDetails />
+  },
+  {
+    path: '/settings',
+    element: <Settings />
+  },
+  {
+    path: '/profile/:userId',
+    element: <PublicProfile />
+  },
+  {
+    path: '/book/:eventId',
+    element: <BookingPage />
+  },
+  {
+    path: '/completed-events',
+    element: <CompletedEvents />
+  },
+  {
+    path: '/about',
+    element: <About />
+  },
+  {
+    path: '/contact',
+    element: <Contact />
+  },
+  {
+    path: '/privacy',
+    element: <PrivacyPolicy />
+  },
+  {
+    path: '/terms',
+    element: <TermsConditions />
   },
   {
     path: '/profile',
@@ -140,14 +143,26 @@ const router = createBrowserRouter([
   {
     path: '/my-events',
     element: <MyEvents />
-  },
-  {
-    path: '/settings',
-    element: <Profile />
   }
 ])
 
 function App() {
+  const theme = useSelector((state) => state.theme);
+  const mode = theme?.mode || 'light';
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+    const body = window.document.body;
+    
+    if (mode === 'dark') {
+      root.classList.add('dark');
+      body.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+      body.classList.remove('dark');
+    }
+  }, [mode]);
+
   return (
     <>
       <Toaster 

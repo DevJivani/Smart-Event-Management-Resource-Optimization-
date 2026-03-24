@@ -178,16 +178,16 @@ const AdminBookingsPage = () => {
   if (role !== "admin") return <Navigate to="/" replace />;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors duration-300">
       <Navbar />
-      <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border-b">
+      <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/20 dark:to-purple-950/20 border-b dark:border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <h1 className="text-3xl font-bold text-gray-900">Booked Tickets</h1>
-          <p className="text-gray-600 mt-2">All bookings across the platform.</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Booked Tickets</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">All bookings across the platform.</p>
         </div>
       </div>
       <main className="max-w-7xl mx-auto p-8">
-        <div className="bg-white rounded-xl shadow p-6 mb-6">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm p-6 mb-6 border dark:border-gray-800">
           <div className="grid sm:grid-cols-4 gap-4">
             <div className="sm:col-span-2 relative">
               <svg className="w-5 h-5 text-gray-400 absolute left-3 top-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -196,7 +196,7 @@ const AdminBookingsPage = () => {
               <input
                 type="text"
                 placeholder="Search by event title or user email"
-                className="w-full border border-gray-300 rounded-lg pl-10 px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg pl-10 px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900 dark:text-white transition-colors"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
               />
@@ -205,7 +205,7 @@ const AdminBookingsPage = () => {
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 transition-colors"
               >
                 <option value="all">All payments</option>
                 <option value="paid">Paid</option>
@@ -215,20 +215,20 @@ const AdminBookingsPage = () => {
             </div>
             <div className="flex items-center">
               <button
-                className="w-full px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
+                className="w-full px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-md"
                 onClick={() => window.location.reload()}
               >
                 Refresh
               </button>
             </div>
           </div>
-          <div className="mt-4 text-sm text-gray-500">
-            <span className="font-medium text-gray-700">{filtered.length}</span> records
+          <div className="mt-4 text-sm text-gray-500 dark:text-gray-400">
+            <span className="font-medium text-gray-700 dark:text-gray-200">{filtered.length}</span> records
             {source ? <span> • Source: {source}</span> : null}
           </div>
-          <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t dark:border-gray-800">
             <div className="flex items-center gap-3 flex-wrap">
-              <span className="text-sm text-gray-600">Columns:</span>
+              <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">Columns:</span>
               {[
                 ["event", "Event"],
                 ["user", "User"],
@@ -239,19 +239,20 @@ const AdminBookingsPage = () => {
                 ["paymentStatus", "Payment"],
                 ["actions", "Actions"],
               ].map(([key, label]) => (
-                <label key={key} className="flex items-center gap-1 text-sm text-gray-700">
+                <label key={key} className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer group">
                   <input
                     type="checkbox"
+                    className="rounded border-gray-300 dark:border-gray-700 text-indigo-600 focus:ring-indigo-500 dark:bg-gray-800"
                     checked={showCols[key]}
                     onChange={(e) => setShowCols((c) => ({ ...c, [key]: e.target.checked }))}
                   />
-                  <span>{label}</span>
+                  <span className="group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{label}</span>
                 </label>
               ))}
             </div>
             <div>
               <button
-                className="px-4 py-2 rounded-lg bg-gray-900 text-white hover:bg-black text-sm"
+                className="px-4 py-2 rounded-lg bg-gray-900 dark:bg-gray-800 text-white hover:bg-black dark:hover:bg-gray-700 text-sm font-bold shadow-md transition-all flex items-center gap-2"
                 onClick={() => {
                   const cols = [];
                   if (showCols.event) cols.push("Event");
@@ -288,6 +289,7 @@ const AdminBookingsPage = () => {
                   setTimeout(() => URL.revokeObjectURL(url), 1000);
                 }}
               >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" strokeWidth="2" /></svg>
                 Export CSV
               </button>
             </div>
@@ -297,133 +299,140 @@ const AdminBookingsPage = () => {
 
         {loading ? (
           <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 dark:border-indigo-400"></div>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="bg-white rounded-xl shadow p-12 text-center">
-            <h3 className="text-lg font-medium text-gray-900">No bookings found</h3>
-            <p className="mt-1 text-sm text-gray-500">Try adjusting the search or filter.</p>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm p-12 text-center border dark:border-gray-800">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white">No bookings found</h3>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Try adjusting the search or filter.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto bg-white rounded-xl shadow">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  {showCols.event && (
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{headerButton("Event", "eventTitle")}</th>
-                  )}
-                  {showCols.user && (
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{headerButton("User", "userName")}</th>
-                  )}
-                  {showCols.quantity && (
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{headerButton("Qty", "quantity")}</th>
-                  )}
-                  {showCols.unitPrice && (
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{headerButton("Unit Price", "unitPrice")}</th>
-                  )}
-                  {showCols.total && (
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{headerButton("Total", "total")}</th>
-                  )}
-                  {showCols.createdAt && (
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{headerButton("Booked At", "createdAt")}</th>
-                  )}
-                  {showCols.paymentStatus && (
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{headerButton("Payment", "paymentStatus")}</th>
-                  )}
-                  {showCols.actions && <th className="px-6 py-3"></th>}
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-100">
-                {pageRows.map((r) => (
-                  <tr key={r.id} className="hover:bg-gray-50">
+          <div className="overflow-hidden bg-white dark:bg-gray-900 rounded-2xl shadow-sm border dark:border-gray-800">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
+                <thead className="bg-gray-50 dark:bg-gray-800/50">
+                  <tr>
                     {showCols.event && (
-                      <td className="px-6 py-4">
-                        <div className="text-sm font-semibold text-gray-900">{r.eventTitle}</div>
-                        <div className="text-xs text-gray-500">
-                          {r.venue}{r.city ? `, ${r.city}` : ""}
-                        </div>
-                      </td>
+                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">{headerButton("Event", "eventTitle")}</th>
                     )}
                     {showCols.user && (
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900">{r.userName}</div>
-                        <div className="text-xs text-gray-500">{r.userEmail}</div>
-                      </td>
+                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">{headerButton("User", "userName")}</th>
                     )}
                     {showCols.quantity && (
-                      <td className="px-6 py-4 text-sm text-gray-900">{r.quantity}</td>
+                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">{headerButton("Qty", "quantity")}</th>
                     )}
                     {showCols.unitPrice && (
-                      <td className="px-6 py-4 text-sm text-gray-900">₹{fmtCurrency(r.unitPrice)}</td>
+                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">{headerButton("Unit Price", "unitPrice")}</th>
                     )}
                     {showCols.total && (
-                      <td className="px-6 py-4 text-sm font-semibold text-gray-900">₹{fmtCurrency(r.total)}</td>
+                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">{headerButton("Total", "total")}</th>
                     )}
                     {showCols.createdAt && (
-                      <td className="px-6 py-4 text-sm text-gray-900">{fmtDateTime(r.createdAt)}</td>
+                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">{headerButton("Booked At", "createdAt")}</th>
                     )}
                     {showCols.paymentStatus && (
-                      <td className="px-6 py-4">
-                        <StatusBadge value={r.paymentStatus} />
-                      </td>
+                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">{headerButton("Payment", "paymentStatus")}</th>
                     )}
-                    {showCols.actions && (
-                      <td className="px-6 py-4">
-                        <div className="flex gap-2">
-                          {r.id && (
-                            <>
-                              <button
-                                className="text-xs px-3 py-1.5 rounded bg-indigo-600 text-white hover:bg-indigo-700"
-                                onClick={() => {
-                                  const url = `${axiosInstance.defaults.baseURL}/api/v1/booking/${r.id}/invoice`;
-                                  window.open(url, "_blank");
-                                }}
-                              >
-                                Invoice
-                              </button>
-                              <a
-                                href={`/admin/bookings/${r.id}`}
-                                className="text-xs px-3 py-1.5 rounded bg-gray-900 text-white hover:bg-black"
-                              >
-                                View Details
-                              </a>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    )}
+                    {showCols.actions && <th className="px-6 py-4"></th>}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-6 py-4">
-              <div className="text-sm text-gray-600">
-                Page {page} of {totalPages}
+                </thead>
+                <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-100 dark:divide-gray-800">
+                  {pageRows.map((r) => (
+                    <tr key={r.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                      {showCols.event && (
+                        <td className="px-6 py-4">
+                          <div className="text-sm font-bold text-gray-900 dark:text-white">{r.eventTitle}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {r.venue}{r.city ? `, ${r.city}` : ""}
+                          </div>
+                        </td>
+                      )}
+                      {showCols.user && (
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-gray-900 dark:text-white font-medium">{r.userName}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">{r.userEmail}</div>
+                        </td>
+                      )}
+                      {showCols.quantity && (
+                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-300">{r.quantity}</td>
+                      )}
+                      {showCols.unitPrice && (
+                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-300">₹{fmtCurrency(r.unitPrice)}</td>
+                      )}
+                      {showCols.total && (
+                        <td className="px-6 py-4 text-sm font-bold text-indigo-600 dark:text-indigo-400">₹{fmtCurrency(r.total)}</td>
+                      )}
+                      {showCols.createdAt && (
+                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-300">{fmtDateTime(r.createdAt)}</td>
+                      )}
+                      {showCols.paymentStatus && (
+                        <td className="px-6 py-4">
+                          <StatusBadge value={r.paymentStatus} />
+                        </td>
+                      )}
+                      {showCols.actions && (
+                        <td className="px-6 py-4">
+                          <div className="flex gap-2">
+                            {r.id && (
+                              <>
+                                <button
+                                  className="text-xs px-3 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-sm"
+                                  onClick={() => {
+                                    const url = `${axiosInstance.defaults.baseURL}/api/v1/booking/${r.id}/invoice`;
+                                    window.open(url, "_blank");
+                                  }}
+                                >
+                                  Invoice
+                                </button>
+                                <a
+                                  href={`/admin/bookings/${r.id}`}
+                                  className="text-xs px-3 py-1.5 rounded-lg bg-gray-900 dark:bg-gray-800 text-white hover:bg-black dark:hover:bg-gray-700 transition-colors shadow-sm"
+                                >
+                                  Details
+                                </a>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-8 py-6 bg-gray-50/50 dark:bg-gray-800/30 border-t dark:border-gray-800">
+              <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">
+                Page <span className="text-gray-900 dark:text-white font-bold">{page}</span> of <span className="text-gray-900 dark:text-white font-bold">{totalPages}</span>
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  className="px-3 py-1.5 rounded border border-gray-300 text-sm"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                >
-                  Previous
-                </button>
-                <button
-                  className="px-3 py-1.5 rounded border border-gray-300 text-sm"
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages}
-                >
-                  Next
-                </button>
-                <select
-                  value={pageSize}
-                  onChange={(e) => setPageSize(Number(e.target.value))}
-                  className="ml-2 border border-gray-300 rounded px-2 py-1 text-sm"
-                >
-                  <option value={10}>10 / page</option>
-                  <option value={20}>20 / page</option>
-                  <option value={50}>50 / page</option>
-                </select>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <button
+                    className="p-2 rounded-xl border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-800 disabled:opacity-30 transition-all"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" strokeWidth="2" /></svg>
+                  </button>
+                  <button
+                    className="p-2 rounded-xl border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-800 disabled:opacity-30 transition-all"
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" strokeWidth="2" /></svg>
+                  </button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Show</span>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => setPageSize(Number(e.target.value))}
+                    className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-1.5 text-sm font-bold text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                  >
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                  </select>
+                </div>
               </div>
             </div>
           </div>
@@ -442,27 +451,27 @@ function StatsBar({ rows }) {
   const revenue = paid.reduce((sum, r) => sum + Number(r.total || 0), 0);
   return (
     <div className="grid sm:grid-cols-4 gap-4 mb-6">
-      <div className="bg-white rounded-xl shadow p-4">
-        <p className="text-sm text-gray-500">Total Bookings</p>
-        <p className="text-2xl font-semibold text-gray-900">{total}</p>
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm p-6 border dark:border-gray-800 transition-colors">
+        <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-1">Total Bookings</p>
+        <p className="text-3xl font-extrabold text-gray-900 dark:text-white">{total}</p>
       </div>
-      <div className="bg-white rounded-xl shadow p-4">
-        <p className="text-sm text-gray-500">Paid</p>
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm p-6 border dark:border-gray-800 transition-colors">
+        <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-1">Paid</p>
         <div className="flex items-center justify-between">
-          <p className="text-2xl font-semibold text-gray-900">{paid.length}</p>
+          <p className="text-3xl font-extrabold text-gray-900 dark:text-white">{paid.length}</p>
           <StatusBadge value="paid" size="xs" />
         </div>
       </div>
-      <div className="bg-white rounded-xl shadow p-4">
-        <p className="text-sm text-gray-500">Pending</p>
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm p-6 border dark:border-gray-800 transition-colors">
+        <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-1">Pending</p>
         <div className="flex items-center justify-between">
-          <p className="text-2xl font-semibold text-gray-900">{pending.length}</p>
+          <p className="text-3xl font-extrabold text-gray-900 dark:text-white">{pending.length}</p>
           <StatusBadge value="pending" size="xs" />
         </div>
       </div>
-      <div className="bg-white rounded-xl shadow p-4">
-        <p className="text-sm text-gray-500">Revenue (Paid)</p>
-        <p className="text-2xl font-semibold text-gray-900">₹{fmtCurrency(revenue)}</p>
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm p-6 border dark:border-gray-800 transition-colors">
+        <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-1">Revenue (Paid)</p>
+        <p className="text-3xl font-extrabold text-indigo-600 dark:text-indigo-400">₹{fmtCurrency(revenue)}</p>
       </div>
     </div>
   );

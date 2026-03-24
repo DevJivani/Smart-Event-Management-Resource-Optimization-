@@ -92,6 +92,7 @@
 
 import { combineReducers, configureStore } from "@reduxjs/toolkit";
 import authSlice from "./authSlice";
+import themeSlice from "./themeSlice";
 import {
   persistStore,
   persistReducer,
@@ -123,6 +124,7 @@ const persistConfig = {
 
 const rootReducer = combineReducers({
   auth: authSlice,
+  theme: themeSlice,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

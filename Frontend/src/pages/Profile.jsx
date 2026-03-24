@@ -6,6 +6,7 @@ import { toast } from "react-hot-toast";
 import Navbar from "../components/Navbar";
 import { setLoading, setUser } from "../redux/authSlice";
 import axiosInstance from "../utils/axios";
+import { Link } from "react-router-dom";
 
 const API_BASE = "http://localhost:3000/api/v1/user";
 const PENDING_IMAGE_KEY = "eventhub_pending_profile_image";
@@ -262,7 +263,7 @@ function Profile() {
   const avatarUrl = avatarPreview || user.profileImage || null;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors duration-300">
       <Navbar />
       {/* hero similar to Home */}
       <section className="relative overflow-hidden">
@@ -275,7 +276,7 @@ function Profile() {
           <div className="flex flex-col md:flex-row items-center md:items-end justify-between gap-8 text-white">
             <div className="flex items-center gap-4">
               <div className="relative">
-                <div className="w-16 h-16 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center overflow-hidden">
+                <div className="w-16 h-16 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center overflow-hidden backdrop-blur-sm">
                   {avatarUrl ? (
                     <img
                       src={avatarUrl}
@@ -288,32 +289,60 @@ function Profile() {
                     </span>
                   )}
                 </div>
-                <button
-                  type="button"
-                  onClick={handlePickAvatar}
-                  className="absolute -bottom-2 -right-2 w-9 h-9 rounded-xl bg-white/90 text-purple-600 flex items-center justify-center shadow-md"
-                  title="Change photo"
-                >
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+                <div className="flex gap-2 absolute -bottom-2 -right-2">
+                  <button
+                    type="button"
+                    onClick={handlePickAvatar}
+                    className="w-9 h-9 rounded-xl bg-white dark:bg-gray-800 text-purple-600 dark:text-purple-400 flex items-center justify-center shadow-md border border-gray-100 dark:border-gray-700 hover:scale-110 transition-transform"
+                    title="Change photo"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M3 7h4l2-2h6l2 2h4v14H3V7z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M12 17a4 4 0 100-8 4 4 0 000 8z"
-                    />
-                  </svg>
-                </button>
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M3 7h4l2-2h6l2 2h4v14H3V7z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M12 17a4 4 0 100-8 4 4 0 000 8z"
+                      />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/settings")}
+                    className="w-9 h-9 rounded-xl bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shadow-md border border-gray-100 dark:border-gray-700 hover:scale-110 transition-transform"
+                    title="Account Settings"
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                    </svg>
+                  </button>
+                </div>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -340,18 +369,18 @@ function Profile() {
       <main className="max-w-7xl mx-auto px-4 py-10 space-y-8">
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Account details */}
-          <section className="lg:col-span-2 bg-white rounded-2xl shadow-md p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-1">
+          <section className="lg:col-span-2 bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-6 transition-colors duration-300">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">
               Account details
             </h2>
-            <p className="text-gray-500 text-sm mb-6">
+            <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">
               Update your basic profile information.
             </p>
 
             <div className="space-y-4">
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Full name
                   </label>
                   <input
@@ -360,25 +389,27 @@ function Profile() {
                     value={profileForm.name}
                     onChange={handleProfileChange}
                     disabled={!isEditMode}
-                    className={`w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm ${
-                      isEditMode ? "bg-white" : "bg-gray-50 cursor-not-allowed"
+                    className={`w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm transition-all ${
+                      isEditMode 
+                        ? "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white" 
+                        : "bg-gray-50 dark:bg-gray-800/50 border-gray-100 dark:border-gray-800 text-gray-500 dark:text-gray-400 cursor-not-allowed"
                     }`}
                     placeholder="Your name"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Role
                   </label>
-                  <div className="w-full px-4 py-2.5 border border-gray-200 rounded-xl bg-gray-50 text-sm flex items-center">
-                    <span className="font-medium text-gray-900 capitalize">
+                  <div className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800/50 text-sm flex items-center">
+                    <span className="font-medium text-gray-900 dark:text-white capitalize">
                       {user.role === "organizer" ? "Organizer" : "User / Attendee"}
                     </span>
                     <span className={`ml-2 px-2.5 py-0.5 text-xs font-semibold rounded-full ${
                       user.role === "organizer" 
-                        ? "bg-blue-100 text-blue-800" 
-                        : "bg-green-100 text-green-800"
+                        ? "bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-400" 
+                        : "bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400"
                     }`}>
                       {user.role}
                     </span>
@@ -387,10 +418,10 @@ function Profile() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Phone
                   {isEditMode && (
-                    <span className="text-xs text-gray-500 font-normal ml-1">
+                    <span className="text-xs text-gray-500 dark:text-gray-400 font-normal ml-1">
                       (10 digits only)
                     </span>
                   )}
@@ -403,19 +434,19 @@ function Profile() {
                     onChange={handleProfileChange}
                     disabled={!isEditMode}
                     maxLength="10"
-                    className={`w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm ${
+                    className={`w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm transition-all ${
                       isEditMode 
-                        ? `bg-white border-gray-200 ${profileForm.phone.length === 10 ? "border-green-300" : "border-gray-200"}` 
-                        : "bg-gray-50 cursor-not-allowed border-gray-200"
+                        ? `bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white ${profileForm.phone.length === 10 ? "border-green-300 dark:border-green-900/50" : ""}` 
+                        : "bg-gray-50 dark:bg-gray-800/50 border-gray-100 dark:border-gray-800 text-gray-500 dark:text-gray-400 cursor-not-allowed"
                     }`}
                     placeholder="10 digit number"
                   />
                   {isEditMode && profileForm.phone && (
                     <div className="absolute right-4 top-3 text-sm font-medium">
                       {profileForm.phone.length === 10 ? (
-                        <span className="text-green-600">✓ {profileForm.phone.length}/10</span>
+                        <span className="text-green-600 dark:text-green-400">✓ {profileForm.phone.length}/10</span>
                       ) : (
-                        <span className="text-orange-600">{profileForm.phone.length}/10</span>
+                        <span className="text-orange-600 dark:text-orange-400">{profileForm.phone.length}/10</span>
                       )}
                     </div>
                   )}
@@ -427,7 +458,7 @@ function Profile() {
                   <button
                     type="button"
                     onClick={handleEditToggle}
-                    className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl text-sm font-medium shadow hover:shadow-lg transition-all duration-200 flex items-center gap-2"
+                    className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl text-sm font-medium shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 transition-all duration-200 flex items-center gap-2"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -440,7 +471,7 @@ function Profile() {
                       type="button"
                       onClick={handleUpdateProfile}
                       disabled={loading}
-                      className="px-5 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl text-sm font-medium shadow hover:shadow-lg disabled:opacity-70 transition-all duration-200 flex items-center gap-2"
+                      className="px-5 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl text-sm font-medium shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 disabled:opacity-70 transition-all duration-200 flex items-center gap-2"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
@@ -450,7 +481,7 @@ function Profile() {
                     <button
                       type="button"
                       onClick={handleResetForm}
-                      className="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-all duration-200 flex items-center gap-2"
+                      className="px-5 py-2.5 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 flex items-center gap-2"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -460,7 +491,7 @@ function Profile() {
                     <button
                       type="button"
                       onClick={handleEditToggle}
-                      className="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-xl text-sm font-medium hover:bg-red-50 hover:border-red-300 hover:text-red-700 transition-all duration-200 flex items-center gap-2"
+                      className="px-5 py-2.5 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-300 dark:hover:border-red-900/50 hover:text-red-700 dark:hover:text-red-400 transition-all duration-200 flex items-center gap-2"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
@@ -474,12 +505,12 @@ function Profile() {
           </section>
 
           {/* Summary card */}
-          <section className="bg-white rounded-2xl shadow-md p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          <section className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-6 transition-colors duration-300">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
               Profile summary
             </h3>
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-11 h-11 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center text-white font-semibold overflow-hidden">
+              <div className="w-11 h-11 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center text-white font-semibold overflow-hidden shadow-sm">
                 {avatarUrl ? (
                   <img
                     src={avatarUrl}
@@ -491,11 +522,11 @@ function Profile() {
                 )}
               </div>
               <div>
-                <p className="font-medium text-gray-900">{user.name}</p>
-                <p className="text-xs text-gray-500">{user.email}</p>
+                <p className="font-medium text-gray-900 dark:text-white">{user.name}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{user.email}</p>
               </div>
             </div>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
               Keep your information up to date so we can personalize your
               event experience.
             </p>
@@ -503,17 +534,17 @@ function Profile() {
         </div>
 
         {/* Security section */}
-        <section className="bg-white rounded-2xl shadow-md p-6 max-w-2xl">
-          <h2 className="text-xl font-semibold text-gray-900 mb-1">
+        <section className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-6 max-w-2xl transition-colors duration-300">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">
             Security
           </h2>
-          <p className="text-gray-500 text-sm mb-6">
+          <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">
             Change your password regularly to keep your account safe.
           </p>
 
           <form onSubmit={handleChangePassword} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Current password
               </label>
               <input
@@ -521,14 +552,14 @@ function Profile() {
                 name="currentPassword"
                 value={passwordForm.currentPassword}
                 onChange={handlePasswordChange}
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm transition-all"
                 placeholder="Enter current password"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 New password
               </label>
               <input
@@ -536,7 +567,7 @@ function Profile() {
                 name="newPassword"
                 value={passwordForm.newPassword}
                 onChange={handlePasswordChange}
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm transition-all"
                 placeholder="Enter new password"
                 required
               />
@@ -545,7 +576,7 @@ function Profile() {
             <button
               type="submit"
               disabled={loading}
-              className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl text-sm font-medium shadow hover:shadow-lg disabled:opacity-70"
+              className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl text-sm font-semibold shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 disabled:opacity-70 transition-all"
             >
               {loading ? "Updating..." : "Update password"}
             </button>
@@ -553,43 +584,48 @@ function Profile() {
         </section>
 
         {/* My Events preview */}
-        <section className="bg-white rounded-2xl shadow-md p-6">
-          <div className="flex items-center justify-between">
+        <section className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-6 transition-colors duration-300">
+          <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">My Events</h2>
-              <p className="text-gray-500 text-sm">Recently booked tickets</p>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">My Events</h2>
+              <p className="text-gray-500 dark:text-gray-400 text-sm">Recently booked tickets</p>
             </div>
+            <Link to="/my-events" className="text-purple-600 dark:text-purple-400 text-sm font-bold hover:underline">View all</Link>
           </div>
           <div className="mt-4">
             {bookingLoading ? (
               <div className="flex justify-center items-center h-32">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 dark:border-purple-400"></div>
               </div>
             ) : bookings.length === 0 ? (
-              <p className="text-sm text-gray-500">No bookings yet.</p>
+              <div className="text-center py-10 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-dashed border-gray-200 dark:border-gray-700">
+                <p className="text-sm text-gray-500 dark:text-gray-400">No bookings yet.</p>
+              </div>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2">
                 {bookings.slice(0, 4).map((b) => (
-                  <div key={b._id} className="border border-gray-200 rounded-xl p-4">
-                    <p className="text-sm font-medium text-gray-900">{b.eventId?.title}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">
+                  <div key={b._id} className="border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-800/50 rounded-xl p-4 hover:shadow-md transition-shadow">
+                    <p className="text-sm font-bold text-gray-900 dark:text-white line-clamp-1">{b.eventId?.title}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">
                       {b.eventId?.venue}{b.eventId?.city ? `, ${b.eventId.city}` : ""}
                     </p>
-                    <div className="mt-2 flex items-center justify-between">
-                      <span className="text-xs text-gray-600">
+                    <div className="mt-4 flex items-center justify-between">
+                      <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
                         {b.quantity} × ₹{Number((b.ticketId?.price ?? b.eventId?.price) || 0).toFixed(2)}
                       </span>
-                      <span className={`px-2 py-0.5 text-xs rounded-full ${
-                        b.paymentStatus === "paid" ? "bg-emerald-100 text-emerald-800" : "bg-yellow-100 text-yellow-800"
+                      <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-lg ${
+                        b.paymentStatus === "paid" 
+                          ? "bg-emerald-100 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-400" 
+                          : "bg-amber-100 dark:bg-amber-900/20 text-amber-800 dark:text-amber-400"
                       }`}>
                         {b.paymentStatus}
                       </span>
                     </div>
-                    <div className="mt-2 flex items-center justify-between">
-                      <span className="text-sm font-semibold">₹{Number(b.totalAmount || 0).toFixed(2)}</span>
+                    <div className="mt-4 flex items-center justify-between border-t border-gray-50 dark:border-gray-800 pt-4">
+                      <span className="text-sm font-bold text-gray-900 dark:text-white">₹{Number(b.totalAmount || 0).toFixed(2)}</span>
                       <button
                         type="button"
-                        className="text-xs px-2 py-1 rounded-md bg-indigo-600 text-white"
+                        className="text-xs font-bold px-3 py-1.5 rounded-lg bg-indigo-600 dark:bg-indigo-900/40 text-white dark:text-indigo-300 hover:bg-indigo-700 dark:hover:bg-indigo-900/60 transition-colors"
                         onClick={() => {
                           const url = `${axiosInstance.defaults.baseURL}/api/v1/booking/${b._id}/invoice`;
                           window.open(url, "_blank");
@@ -602,9 +638,6 @@ function Profile() {
                 ))}
               </div>
             )}
-            <div className="mt-4">
-              <a href="/my-events" className="text-indigo-600 text-sm font-medium">View all</a>
-            </div>
           </div>
         </section>
       </main>

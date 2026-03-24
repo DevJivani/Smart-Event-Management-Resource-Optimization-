@@ -153,7 +153,7 @@ const Register = () => {
   return (
     <div className="min-h-screen flex">
       {/* Left Side - Register Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-gray-50">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-gray-50 dark:bg-gray-950 transition-colors duration-300">
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
           <div className="lg:hidden flex justify-center mb-8">
@@ -166,15 +166,15 @@ const Register = () => {
 
           {/* Form Header */}
           <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-gray-800 mb-2">Create Account</h2>
-            <p className="text-gray-500">Join us and start managing amazing events</p>
+            <h2 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">Create Account</h2>
+            <p className="text-gray-500 dark:text-gray-400">Join us and start managing amazing events</p>
           </div>
 
           {/* Register Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Profile Image */}
             <div className="flex items-center gap-4 mb-2">
-              <div className="w-14 h-14 rounded-full overflow-hidden bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-semibold">
+              <div className="w-14 h-14 rounded-full overflow-hidden bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-semibold shadow-md">
                 {previewUrl ? (
                   <img
                     src={previewUrl}
@@ -186,26 +186,26 @@ const Register = () => {
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Profile Photo (optional)
                 </label>
                 <input
                   type="file"
                   accept="image/*"
                   onChange={handleImageChange}
-                  className="text-sm text-gray-600"
+                  className="text-xs text-gray-600 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 dark:file:bg-emerald-900/20 dark:file:text-emerald-400 hover:file:bg-emerald-100 dark:hover:file:bg-emerald-900/30 transition-all cursor-pointer"
                 />
               </div>
             </div>
 
             {/* Username Field */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Full Name
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                 </div>
@@ -215,7 +215,7 @@ const Register = () => {
                   value={formData.userName}
                   placeholder="John Doe"
                   onChange={handleChange}
-                  className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm"
+                  className="w-full pl-12 pr-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm"
                   required
                 />
               </div>
@@ -223,12 +223,12 @@ const Register = () => {
 
             {/* Email Field */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Email Address
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
                   </svg>
                 </div>
@@ -238,7 +238,7 @@ const Register = () => {
                   value={formData.email}
                   placeholder="you@example.com"
                   onChange={handleChange}
-                  className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm"
+                  className="w-full pl-12 pr-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm"
                   required
                 />
               </div>
@@ -246,15 +246,15 @@ const Register = () => {
 
             {/* Phone Number Field */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Phone Number
-                <span className="text-xs text-gray-500 font-normal ml-1">
+                <span className="text-xs text-gray-500 dark:text-gray-400 font-normal ml-1">
                   (10 digits only)
                 </span>
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                   </svg>
                 </div>
@@ -265,17 +265,17 @@ const Register = () => {
                   placeholder="10 digit number"
                   onChange={handleChange}
                   maxLength="10"
-                  className={`w-full pl-12 pr-16 py-3 border rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm ${
-                    formData.phoneNumber.length === 10 ? "border-green-300" : "border-gray-200"
+                  className={`w-full pl-12 pr-16 py-3 border rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm ${
+                    formData.phoneNumber.length === 10 ? "border-green-300 dark:border-green-900/50" : "border-gray-200 dark:border-gray-700"
                   }`}
                   required
                 />
                 {formData.phoneNumber && (
                   <div className="absolute right-4 top-12 text-sm font-medium">
                     {formData.phoneNumber.length === 10 ? (
-                      <span className="text-green-600">✓ {formData.phoneNumber.length}/10</span>
+                      <span className="text-green-600 dark:text-green-400">✓ {formData.phoneNumber.length}/10</span>
                     ) : (
-                      <span className="text-orange-600">{formData.phoneNumber.length}/10</span>
+                      <span className="text-orange-600 dark:text-orange-400">{formData.phoneNumber.length}/10</span>
                     )}
                   </div>
                 )}
@@ -284,12 +284,12 @@ const Register = () => {
 
             {/* Password Field */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Password
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                   </svg>
                 </div>
@@ -299,13 +299,13 @@ const Register = () => {
                   value={formData.password}
                   placeholder="Create a strong password"
                   onChange={handleChange}
-                  className="w-full pl-12 pr-12 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm"
+                  className="w-full pl-12 pr-12 py-3 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                 >
                   {showPassword ? (
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -319,7 +319,7 @@ const Register = () => {
                   )}
                 </button>
               </div>
-              <p className="mt-2 text-xs text-gray-500">
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
                 Must be at least 8 characters with a number and symbol
               </p>
             </div>
@@ -329,63 +329,63 @@ const Register = () => {
               <input 
                 type="checkbox" 
                 id="terms"
-                className="w-4 h-4 mt-1 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500" 
+                className="w-4 h-4 mt-1 text-emerald-600 border-gray-300 dark:border-gray-700 rounded focus:ring-emerald-500 bg-white dark:bg-gray-800" 
                 required
               />
-              <label htmlFor="terms" className="ml-3 text-sm text-gray-600">
+              <label htmlFor="terms" className="ml-3 text-sm text-gray-600 dark:text-gray-400">
                 I agree to the{" "}
-                <a href="#" className="text-emerald-600 hover:underline font-medium">Terms of Service</a>
+                <a href="#" className="text-emerald-600 dark:text-emerald-400 hover:underline font-medium">Terms of Service</a>
                 {" "}and{" "}
-                <a href="#" className="text-emerald-600 hover:underline font-medium">Privacy Policy</a>
+                <a href="#" className="text-emerald-600 dark:text-emerald-400 hover:underline font-medium">Privacy Policy</a>
               </label>
             </div>
 
             {/* Role Selection */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                 What is your role?
               </label>
               <div className="space-y-3">
-                <label className="flex items-center p-3 border-2 border-gray-200 rounded-xl cursor-pointer transition-all" style={{borderColor: formData.role === "user" ? "#10b981" : ""}}>
+                <label className="flex items-center p-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl cursor-pointer transition-all" style={{borderColor: formData.role === "user" ? "#10b981" : ""}}>
                   <input
                     type="radio"
                     name="role"
                     value="user"
                     checked={formData.role === "user"}
                     onChange={handleChange}
-                    className="w-4 h-4 text-emerald-600 border-gray-300 focus:ring-emerald-500"
+                    className="w-4 h-4 text-emerald-600 border-gray-300 dark:border-gray-600 focus:ring-emerald-500"
                   />
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-700">User / Attendee</p>
-                    <p className="text-xs text-gray-500">Register to attend events and discover new experiences</p>
+                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">User / Attendee</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Register to attend events and discover new experiences</p>
                   </div>
                 </label>
-                <label className="flex items-center p-3 border-2 border-gray-200 rounded-xl cursor-pointer transition-all" style={{borderColor: formData.role === "organizer" ? "#10b981" : ""}}>
+                <label className="flex items-center p-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl cursor-pointer transition-all" style={{borderColor: formData.role === "organizer" ? "#10b981" : ""}}>
                   <input
                     type="radio"
                     name="role"
                     value="organizer"
                     checked={formData.role === "organizer"}
                     onChange={handleChange}
-                    className="w-4 h-4 text-emerald-600 border-gray-300 focus:ring-emerald-500"
+                    className="w-4 h-4 text-emerald-600 border-gray-300 dark:border-gray-600 focus:ring-emerald-500"
                   />
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-700">Organizer</p>
-                    <p className="text-xs text-gray-500">Create and manage your own events</p>
+                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Organizer</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Create and manage your own events</p>
                   </div>
                 </label>
-                <label className="flex items-center p-3 border-2 border-gray-200 rounded-xl cursor-pointer transition-all" style={{borderColor: formData.role === "admin" ? "#10b981" : ""}}>
+                <label className="flex items-center p-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl cursor-pointer transition-all" style={{borderColor: formData.role === "admin" ? "#10b981" : ""}}>
                   <input
                     type="radio"
                     name="role"
                     value="admin"
                     checked={formData.role === "admin"}
                     onChange={handleChange}
-                    className="w-4 h-4 text-emerald-600 border-gray-300 focus:ring-emerald-500"
+                    className="w-4 h-4 text-emerald-600 border-gray-300 dark:border-gray-600 focus:ring-emerald-500"
                   />
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-700">Admin</p>
-                    <p className="text-xs text-gray-500">Only use the configured admin email</p>
+                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Admin</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Only use the configured admin email</p>
                   </div>
                 </label>
               </div>
@@ -419,17 +419,17 @@ const Register = () => {
           {/* Divider */}
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200"></div>
+              <div className="w-full border-t border-gray-200 dark:border-gray-700"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-gray-50 text-gray-500">Already have an account?</span>
+              <span className="px-4 bg-gray-50 dark:bg-gray-950 text-gray-500 dark:text-gray-400">Already have an account?</span>
             </div>
           </div>
 
           {/* Login Link */}
           <Link
             to="/login"
-            className="w-full py-3 px-4 border-2 border-emerald-200 text-emerald-600 font-semibold rounded-xl hover:bg-emerald-50 transition-all duration-200 flex items-center justify-center gap-2"
+            className="w-full py-3 px-4 border-2 border-emerald-200 dark:border-emerald-900/50 text-emerald-600 dark:text-emerald-400 font-semibold rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all duration-200 flex items-center justify-center gap-2"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
