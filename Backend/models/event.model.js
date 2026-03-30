@@ -72,6 +72,15 @@ const eventSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    officialPhotos: [
+      {
+        type: String,
+      },
+    ],
+    isMemoryBoxEnabled: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

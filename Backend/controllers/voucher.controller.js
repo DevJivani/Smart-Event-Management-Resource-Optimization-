@@ -16,6 +16,7 @@ export const createVoucher = async (req, res) => {
       minAmount,
       maxDiscount,
       eventId,
+      requiredBadge,
     } = req.body;
 
     const organizerId = req.user._id; // From auth middleware
@@ -44,6 +45,7 @@ export const createVoucher = async (req, res) => {
       minAmount,
       maxDiscount,
       eventId: eventId || null,
+      requiredBadge: requiredBadge || null,
       createdBy: organizerId,
     });
 
@@ -204,6 +206,44 @@ export const deleteVoucher = async (req, res) => {
   }
 };
 
+// Get vouchers eligible for the current user
+export const getEligibleVouchers = async (req, res) => {
+  try {
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json({ message: "Unauthorized", success: false });
+    }
+
+    const userBadgeNames = (user.badges || []).map(b => b.name);
+
+    // Find vouchers that:
+    // 1. Are active
+    // 2. Haven't expired
+    // 3. Haven't reached usage limit
+    // 4. Either have NO required badge OR require a badge the user has
+    const vouchers = await Voucher.find({
+      isActive: true,
+      expiryDate: { $gte: new Date() },
+      $or: [
+        { usageLimit: null },
+        { $expr: { $lt: ["$usedCount", "$usageLimit"] } }
+      ],
+      $or: [
+        { requiredBadge: null },
+        { requiredBadge: { $in: userBadgeNames } }
+      ]
+    }).populate("eventId", "title bannerImage");
+
+    return res.status(200).json({
+      success: true,
+      vouchers
+    });
+  } catch (error) {
+    console.error("Error in getEligibleVouchers:", error);
+    return res.status(500).json({ message: "Server error", success: false });
+  }
+};
+
 // Validate a voucher (for User during booking)
 export const validateVoucher = async (req, res) => {
   try {
@@ -239,6 +279,18 @@ export const validateVoucher = async (req, res) => {
         message: "Voucher usage limit reached",
         success: false,
       });
+    }
+
+    // Check if voucher requires a badge
+    if (voucher.requiredBadge) {
+      const user = req.user;
+      const hasBadge = user.badges?.some(b => b.name === voucher.requiredBadge);
+      if (!hasBadge) {
+        return res.status(400).json({
+          message: `This is an exclusive discount for "${voucher.requiredBadge}" badge holders only!`,
+          success: false,
+        });
+      }
     }
 
     // Check if applicable to the event

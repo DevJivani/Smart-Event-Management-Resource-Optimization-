@@ -5,7 +5,7 @@ import fs from "fs";
 // Configure storage
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        const dir = "./public/temp";
+        const dir = path.join(process.cwd(), "public", "temp");
         try {
             if (!fs.existsSync(dir)) {
                 fs.mkdirSync(dir, { recursive: true });
@@ -38,7 +38,7 @@ const fileFilter = (req, file, cb) => {
 export const upload = multer({
     storage: storage,
     limits: {
-        fileSize: 5 * 1024 * 1024 // 5MB limit
+        fileSize: 25 * 1024 * 1024 // 25MB limit to accommodate high-res photos
     },
     fileFilter: fileFilter
 });

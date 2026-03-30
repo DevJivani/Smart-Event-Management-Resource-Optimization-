@@ -61,6 +61,34 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    interests: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "EventCategory",
+      },
+    ],
+    blockedUsers: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+    stamps: [
+      {
+        eventId: { type: mongoose.Schema.Types.ObjectId, ref: "Event" },
+        categoryId: { type: mongoose.Schema.Types.ObjectId, ref: "EventCategory" },
+        at: { type: Date, default: Date.now }
+      }
+    ],
+    badges: [
+      {
+        name: { type: String, required: true },
+        icon: { type: String }, // optional icon class or name
+        description: { type: String },
+        earnedAt: { type: Date, default: Date.now },
+        categoryId: { type: mongoose.Schema.Types.ObjectId, ref: "EventCategory" }
+      }
+    ]
   },
   { timestamps: true }
 );

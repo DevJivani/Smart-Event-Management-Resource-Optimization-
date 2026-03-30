@@ -1,10 +1,12 @@
 import { Booking } from "../models/booking.model.js";
+import { User } from "../models/user.model.js";
 import { Event } from "../models/event.model.js";
 import { Ticket } from "../models/ticket.model.js";
 import { Payment } from "../models/payment.model.js";
 import { Voucher } from "../models/voucher.model.js";
 import PDFDocument from "pdfkit";
 import { sendNotificationEmail } from "../utils/email.js";
+import { Notification } from "../models/notification.model.js";
 
 export const createPaidBooking = async (req, res) => {
   try {
@@ -73,6 +75,17 @@ export const createPaidBooking = async (req, res) => {
       }
       if (baseAmount < voucher.minAmount) {
         return res.status(400).json({ message: `Minimum amount to use this voucher is ${voucher.minAmount}`, success: false });
+      }
+
+      // Check if voucher requires a badge
+      if (voucher.requiredBadge) {
+        const hasBadge = user.badges?.some(b => b.name === voucher.requiredBadge);
+        if (!hasBadge) {
+          return res.status(400).json({ 
+            message: `This is an exclusive discount for "${voucher.requiredBadge}" badge holders only!`, 
+            success: false 
+          });
+        }
       }
 
       // Calculate discount
@@ -337,8 +350,69 @@ export const verifyTicket = async (req, res) => {
     booking.checkInTime = new Date();
     await booking.save();
 
+    // Digital "Event Passport" & Gamification Logic
+    try {
+      const attendee = await User.findById(booking.userId);
+      const eventWithCategory = await Event.findById(booking.eventId).populate("categoryId");
+      
+      if (attendee && eventWithCategory) {
+        // 1. Add Stamp
+        attendee.stamps.push({
+          eventId: booking.eventId,
+          categoryId: eventWithCategory.categoryId?._id,
+          at: new Date()
+        });
+
+        // 2. Check for Badges (Gamification)
+        const categoryName = eventWithCategory.categoryId?.name || "General";
+        const eventsInCategory = attendee.stamps.filter(s => 
+          String(s.categoryId) === String(eventWithCategory.categoryId?._id)
+        ).length;
+
+        // Badge thresholds: 5 events = Enthusiast, 10 = Expert, 20 = Legend
+        let newBadge = null;
+        if (eventsInCategory === 5) {
+          newBadge = {
+            name: `${categoryName} Enthusiast`,
+            description: `Attended 5 ${categoryName} events!`,
+            categoryId: eventWithCategory.categoryId?._id,
+            icon: "medal"
+          };
+        } else if (eventsInCategory === 10) {
+          newBadge = {
+            name: `${categoryName} Expert`,
+            description: `Attended 10 ${categoryName} events!`,
+            categoryId: eventWithCategory.categoryId?._id,
+            icon: "trophy"
+          };
+        } else if (eventsInCategory === 20) {
+          newBadge = {
+            name: `${categoryName} Legend`,
+            description: `Attended 20 ${categoryName} events! You are a true fan!`,
+            categoryId: eventWithCategory.categoryId?._id,
+            icon: "crown"
+          };
+        }
+
+        if (newBadge) {
+          attendee.badges.push(newBadge);
+          // Notify the user about the new badge
+          await Notification.create({
+            userId: attendee._id,
+            title: "New Badge Earned! 🏅",
+            message: `Congratulations! You've just unlocked the "${newBadge.name}" badge for your Event Passport.`,
+          });
+        }
+
+        await attendee.save();
+      }
+    } catch (gamificationError) {
+      console.error("Gamification Error:", gamificationError);
+      // Don't fail the whole check-in if gamification fails
+    }
+
     return res.status(200).json({
-      message: "Check-in successful! Ticket verified.",
+      message: "Check-in successful! Ticket verified and Passport updated.",
       success: true,
       booking
     });

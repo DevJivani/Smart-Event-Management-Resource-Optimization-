@@ -8,6 +8,9 @@ import reviewRouter from "./Routes/review.route.js";
 import notificationRouter from "./Routes/notification.route.js";
 import voucherRouter from "./Routes/voucher.route.js";
 import messageRouter from "./Routes/message.route.js";
+import memoryBoxRouter from "./Routes/memoryBox.route.js";
+import matchmakerRouter from "./Routes/matchmaker.route.js";
+import chatRouter from "./Routes/chat.route.js";
 
 const app = express();
 
@@ -20,10 +23,10 @@ app.use(cors({
 }));
 
 // Parse incoming JSON payloads with a safe size limit
-app.use(express.json({ limit: "16mb" }));
+app.use(express.json({ limit: "32mb" }));
 
 // Parse URL-encoded payloads (e.g. form submissions)
-app.use(express.urlencoded({ extended: true, limit: "16mb" }));
+app.use(express.urlencoded({ extended: true, limit: "32mb" }));
 
 // Serve static files (e.g. uploaded images, documents) from the public folder
 app.use(express.static("public"));
@@ -47,4 +50,14 @@ app.use("/api/v1/notification", notificationRouter);
 app.use("/api/v1/voucher", voucherRouter);
 // Message-related routes
 app.use("/api/v1/message", messageRouter);
+
+// Memory Box routes
+app.use("/api/v1/memory-box", memoryBoxRouter);
+
+// Matchmaker routes
+app.use("/api/v1/matchmaker", matchmakerRouter);
+
+// Chat routes
+app.use("/api/v1/chat", chatRouter);
+
 export { app };

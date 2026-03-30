@@ -25,14 +25,15 @@ const messageSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    message: {
-      type: String,
-      required: true,
-    },
-    reply: {
-      type: String,
-      default: "",
-    },
+    messages: [
+      {
+        senderType: { type: String, enum: ["user", "organizer"], required: true },
+        content: { type: String, required: true },
+        timestamp: { type: Date, default: Date.now },
+        deletedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }], // Array to track users who deleted for themselves
+        isDeletedForEveryone: { type: Boolean, default: false } // Boolean to track if deleted for everyone
+      }
+    ],
     isReplied: {
       type: Boolean,
       default: false,

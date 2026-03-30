@@ -131,35 +131,52 @@ export const replyToReview = async (req, res) => {
         return res.status(403).json({ message: "Not allowed to reply for this event", success: false });
       }
     } else if (req.user.role === "user") {
-      if (String(review.userId) !== String(req.user._id)) {
-        return res.status(403).json({ message: "Only the review author can reply", success: false });
-      }
+      // Allow users to reply to reviews or other replies (unrestricted for discussion)
+      // Check if user is the author or just another user
+    } else if (req.user.role === "admin") {
+      // Admins can reply to everything
     } else {
       return res.status(403).json({ message: "Forbidden", success: false });
     }
+    
     review.replies = review.replies || [];
     review.replies.push({ userId: req.user._id, comment, createdAt: new Date() });
     await review.save();
-    if (req.user.role === "organizer") {
-      try {
+
+    // Notification Logic
+    try {
+      if (req.user.role === "organizer") {
+        // Notify review author
         await Notification.create({
           userId: review.userId,
           title: "Organizer replied to your review",
-          message: `Organizer responded on "${event.title}": ${comment}`,
+          message: `The organizer responded to your feedback on "${event.title}": ${comment.substring(0, 50)}...`,
         });
-      } catch {
-        // ignore notification errors
+      } else if (req.user.role === "user") {
+        // If user replies to their own review, notify organizer
+        if (String(review.userId) === String(req.user._id)) {
+          await Notification.create({
+            userId: event.createdBy,
+            title: "New feedback on your event",
+            message: `A user added a follow-up to their review on "${event.title}".`,
+          });
+        } else {
+          // If a user replies to someone else's review
+          await Notification.create({
+            userId: review.userId,
+            title: "New reply to your review",
+            message: `${req.user.name} replied to your feedback on "${event.title}".`,
+          });
+          // Also notify organizer
+          await Notification.create({
+            userId: event.createdBy,
+            title: "New discussion on your event",
+            message: `${req.user.name} replied to a review on "${event.title}".`,
+          });
+        }
       }
-    } else if (req.user.role === "user") {
-      try {
-        await Notification.create({
-          userId: event.createdBy,
-          title: "User replied to your event review",
-          message: `User responded on "${event.title}": ${comment}`,
-        });
-      } catch {
-        // ignore notification errors
-      }
+    } catch (err) {
+      console.error("Notification error:", err);
     }
     const populated = await Review.findById(review._id)
       .populate("userId", "name email role")

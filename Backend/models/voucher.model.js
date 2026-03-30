@@ -52,6 +52,10 @@ const voucherSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    requiredBadge: {
+      type: String,
+      default: null, // If set, only users with this badge name can use it
+    },
   },
   { timestamps: true }
 );

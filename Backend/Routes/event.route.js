@@ -1,5 +1,5 @@
 import express from "express";
-import { createEvent, deleteEvent, getEventById, getEventCategories, getOrganizerEvents, updateEvent, getAllEvents, adminApproveEvent, adminDisableEvent, adminEnableEvent, adminGetAllEvents, adminUpdateStatus, adminUnapproveEvent, getPublicStats, contactOrganizer } from "../controllers/event.controller.js";
+import { createEvent, deleteEvent, getEventById, getEventCategories, getOrganizerEvents, updateEvent, getAllEvents, adminApproveEvent, adminDisableEvent, adminEnableEvent, adminGetAllEvents, adminUpdateStatus, adminUnapproveEvent, getPublicStats, contactOrganizer, getRecommendedEvents, smartSearch } from "../controllers/event.controller.js";
 import { createReviewForEvent, getReviewsForEvent } from "../controllers/review.controller.js";
 import { verifyJwt, optionalVerifyJwt } from "../middlewares/auth.middleware.js";
 import { upload } from "../middlewares/multer.middleware.js";
@@ -14,6 +14,12 @@ router.get("/stats", getPublicStats);
 
 // Get all public events
 router.get("/", getAllEvents);
+
+// Get recommended events
+router.get("/recommendations", optionalVerifyJwt, getRecommendedEvents);
+
+// AI Smart Search
+router.get("/smart-search", smartSearch);
 
 // Contact Organizer
 router.post("/contact-organizer", optionalVerifyJwt, contactOrganizer);

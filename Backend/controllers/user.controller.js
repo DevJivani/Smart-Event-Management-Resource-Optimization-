@@ -280,7 +280,7 @@ export const userLogout = async (req, res) => {
 // Update Profile Controller
 export const updateProfile = async (req, res) => {
     try {
-        const { userId, name, email, phone } = req.body;
+        const { userId, name, email, phone, interests } = req.body;
 
         if (!userId) {
             return res.status(400).json({
@@ -313,6 +313,7 @@ export const updateProfile = async (req, res) => {
         if (name) user.name = name;
         if (email) user.email = email;
         if (phone) user.phone = phone;
+        if (interests !== undefined) user.interests = interests;
 
         await user.save();
 
