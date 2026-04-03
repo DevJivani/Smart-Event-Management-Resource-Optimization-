@@ -70,8 +70,10 @@ export const createPaidBooking = async (req, res) => {
       if (voucher.usageLimit !== null && voucher.usedCount >= voucher.usageLimit) {
         return res.status(400).json({ message: "Voucher usage limit reached", success: false });
       }
-      if (voucher.eventId && voucher.eventId.toString() !== eventId) {
-        return res.status(400).json({ message: "Voucher is not applicable for this event", success: false });
+      if (voucher.eventIds && voucher.eventIds.length > 0) {
+        if (!voucher.eventIds.includes(eventId)) {
+          return res.status(400).json({ message: "Voucher not applicable for this event", success: false });
+        }
       }
       if (baseAmount < voucher.minAmount) {
         return res.status(400).json({ message: `Minimum amount to use this voucher is ${voucher.minAmount}`, success: false });
@@ -102,8 +104,58 @@ export const createPaidBooking = async (req, res) => {
 
     const finalAmount = Math.max(0, baseAmount - discountAmount);
 
+    // Fetch organizer to get their UPI ID
+    const organizer = await User.findById(event.createdBy);
+    if (!organizer) {
+        return res.status(404).json({ message: "Organizer not found", success: false });
+    }
+
     // Generate unique ticket secret
     const ticketSecret = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+
+    const isUpiPayment = paymentMethod.toLowerCase() === 'upi';
+
+    // For UPI, we create a pending booking and payment, then return.
+    if (isUpiPayment) {
+        if (!organizer.upiId) {
+            return res.status(400).json({ 
+                message: "This event's organizer has not set up a UPI ID for payments yet. Please try another payment method or contact support.", 
+                success: false 
+            });
+        }
+
+        const booking = await Booking.create({
+            userId: user._id,
+            eventId: event._id,
+            ticketId: ticket._id,
+            quantity: qty,
+            totalAmount: finalAmount,
+            discountAmount,
+            voucherId,
+            bookingStatus: "pending", // Booking is not confirmed until payment is complete
+            paymentStatus: "pending",
+            ticketSecret
+        });
+
+        const payment = await Payment.create({
+            bookingId: booking._id,
+            paymentMethod,
+            transactionId: `TXN-UPI-${Date.now()}`, // Placeholder
+            amount: finalAmount,
+            paymentStatus: "pending"
+        });
+
+        return res.status(201).json({
+              message: "Booking initiated. Please complete the payment.",
+              success: true,
+              booking,
+              payment,
+              organizerUpiId: organizer.upiId, // Return organizer's UPI ID for the QR code
+              organizerName: organizer.name
+          });
+    }
+
+    // --- Existing flow for other synchronous payment methods ---
 
     const booking = await Booking.create({
       userId: user._id,
@@ -198,6 +250,228 @@ export const createPaidBooking = async (req, res) => {
     });
   } catch (error) {
     console.log(error);
+    return res.status(500).json({ message: "Server error", success: false });
+  }
+};
+
+export const confirmUpiPayment = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const { transactionId } = req.body;
+    const user = req.user;
+
+    if (!bookingId || !transactionId) {
+      return res.status(400).json({ 
+        message: "Booking ID and Transaction ID (UTR) are required to verify your payment", 
+        success: false 
+      });
+    }
+
+    const booking = await Booking.findById(bookingId).populate("eventId userId ticketId");
+    if (!booking) {
+      return res.status(404).json({ message: "Booking not found", success: false });
+    }
+
+    if (String(booking.userId._id) !== String(user._id)) {
+      return res.status(403).json({ message: "Unauthorized", success: false });
+    }
+
+    if (booking.paymentStatus === "paid") {
+      return res.status(400).json({ message: "Payment already confirmed", success: false });
+    }
+
+    // Update payment record
+    const payment = await Payment.findOne({ bookingId: booking._id });
+    if (payment) {
+      payment.paymentStatus = "pending"; // Still pending until organizer verifies
+      payment.transactionId = transactionId || `TXN-SUBMITTED-${Date.now()}`;
+      await payment.save();
+    }
+
+    // Update booking record to awaiting-verification
+    booking.paymentStatus = "pending";
+    booking.bookingStatus = "awaiting-verification";
+    booking.transactionId = transactionId;
+    await booking.save();
+
+    return res.status(200).json({
+      message: "Payment submitted! Please wait for the organizer to verify your payment.",
+      success: true,
+      booking
+    });
+
+  } catch (error) {
+    console.error("Confirm Payment Error:", error);
+    return res.status(500).json({ message: "Server error", success: false });
+  }
+};
+
+export const verifyBookingPayment = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const { status, reason } = req.body; // 'confirmed' or 'cancelled', plus optional reason
+    const organizer = req.user;
+
+    if (!bookingId || !status) {
+      return res.status(400).json({ message: "Booking ID and status are required", success: false });
+    }
+
+    const booking = await Booking.findById(bookingId).populate("eventId userId ticketId");
+    if (!booking) {
+      return res.status(404).json({ message: "Booking not found", success: false });
+    }
+
+    // Verify if the requester is the organizer of the event
+    if (String(booking.eventId.createdBy) !== String(organizer._id) && organizer.role !== "admin") {
+      return res.status(403).json({ message: "Unauthorized: You are not the organizer of this event", success: false });
+    }
+
+    if (booking.bookingStatus === "confirmed" || booking.bookingStatus === "cancelled") {
+      return res.status(400).json({ message: `Booking already ${booking.bookingStatus}`, success: false });
+    }
+
+    if (status === "confirmed") {
+      // ... existing confirmation logic ...
+      // Update payment record
+      const payment = await Payment.findOne({ bookingId: booking._id });
+      if (payment) {
+        payment.paymentStatus = "success";
+        await payment.save();
+      }
+
+      // Update booking record
+      booking.paymentStatus = "paid";
+      booking.bookingStatus = "confirmed";
+      await booking.save();
+
+      // Update event/ticket stats
+      const event = await Event.findById(booking.eventId._id);
+      const ticket = await Ticket.findById(booking.ticketId._id);
+
+      if (event) {
+        event.availableSeats = Math.max(0, event.availableSeats - booking.quantity);
+        await event.save();
+      }
+      if (ticket) {
+        ticket.soldQuantity = (ticket.soldQuantity || 0) + booking.quantity;
+        await ticket.save();
+      }
+
+      // Send confirmation email
+      try {
+        await sendNotificationEmail(booking.userId._id, {
+          subject: `Booking Confirmed: ${booking.eventId.title} - EventHub`,
+          html: `
+                  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden;">
+                      <div style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); padding: 30px; text-align: center; color: white;">
+                          <h1 style="margin: 0; font-size: 24px;">Booking Confirmed!</h1>
+                          <p style="margin: 10px 0 0 0; opacity: 0.9;">Your payment has been verified.</p>
+                      </div>
+                      <div style="padding: 30px; background: white;">
+                          <p style="color: #374151; font-size: 16px;">Hi ${booking.userId.name},</p>
+                          <p style="color: #6b7280; line-height: 1.6;">Your booking for <strong>${booking.eventId.title}</strong> has been successfully confirmed. Below are your booking details:</p>
+                          
+                          <div style="background: #f9fafb; border-radius: 8px; padding: 20px; margin: 25px 0;">
+                              <div style="margin-bottom: 10px; display: flex; justify-content: space-between;">
+                                  <span style="color: #9ca3af; font-size: 12px; text-transform: uppercase; font-weight: bold;">Order ID</span>
+                                  <span style="color: #111827; font-size: 14px; font-weight: bold;">#${booking._id}</span>
+                              </div>
+                              <div style="border-top: 1px solid #e5e7eb; padding-top: 15px; margin-top: 15px;">
+                                  <div style="display: flex; justify-content: space-between;">
+                                      <span style="color: #374151; font-weight: bold;">Total Paid</span>
+                                      <span style="color: #4f46e5; font-weight: bold; font-size: 18px;">₹${booking.totalAmount.toFixed(2)}</span>
+                                  </div>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+              `
+        });
+      } catch (e) { console.error("Email failed", e); }
+
+      return res.status(200).json({ message: "Booking confirmed successfully", success: true });
+
+    } else if (status === "cancelled") {
+      // Update payment record
+      const payment = await Payment.findOne({ bookingId: booking._id });
+      if (payment) {
+        payment.paymentStatus = "failed";
+        await payment.save();
+      }
+
+      // Update booking record
+      booking.paymentStatus = "pending";
+      booking.bookingStatus = "cancelled";
+      booking.rejectionReason = reason || "No reason provided by organizer";
+      await booking.save();
+
+      // Notify user about rejection
+      try {
+        await sendNotificationEmail(booking.userId._id, {
+          subject: `Booking Rejected: ${booking.eventId.title} - EventHub`,
+          html: `
+                  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden;">
+                      <div style="background: #ef4444; padding: 30px; text-align: center; color: white;">
+                          <h1 style="margin: 0; font-size: 24px;">Booking Rejected</h1>
+                          <p style="margin: 10px 0 0 0; opacity: 0.9;">Payment verification failed.</p>
+                      </div>
+                      <div style="padding: 30px; background: white;">
+                          <p style="color: #374151; font-size: 16px;">Hi ${booking.userId.name},</p>
+                          <p style="color: #6b7280; line-height: 1.6;">Your booking for <strong>${booking.eventId.title}</strong> has been rejected.</p>
+                          <div style="background: #fef2f2; border-left: 4px solid #ef4444; padding: 15px; margin: 20px 0;">
+                            <p style="margin: 0; color: #991b1b; font-weight: bold;">Reason for rejection:</p>
+                            <p style="margin: 5px 0 0 0; color: #b91c1c;">${reason || "No reason provided by organizer"}</p>
+                          </div>
+                          <p style="color: #6b7280; font-size: 14px;">If you have already paid, please contact the organizer at <strong>${organizer.email}</strong> or reply to this email with your payment proof.</p>
+                      </div>
+                  </div>
+              `
+        });
+      } catch (e) { console.error("Email failed", e); }
+
+      return res.status(200).json({ message: "Booking rejected successfully", success: true });
+    }
+
+    return res.status(400).json({ message: "Invalid status", success: false });
+
+  } catch (error) {
+    console.error("Verify Payment Error:", error);
+    return res.status(500).json({ message: "Server error", success: false });
+  }
+};
+
+export const getPaymentStatus = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const user = req.user;
+
+    if (!bookingId) {
+      return res.status(400).json({ message: "Booking ID is required", success: false });
+    }
+
+    const booking = await Booking.findById(bookingId);
+
+    if (!booking) {
+      return res.status(404).json({ message: "Booking not found", success: false });
+    }
+
+    // Ensure the user requesting is the one who made the booking or an admin
+    if (String(booking.userId) !== String(user._id) && user.role !== 'admin') {
+      return res.status(403).json({ message: "Unauthorized", success: false });
+    }
+
+    const payment = await Payment.findOne({ bookingId: booking._id }).sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      bookingId: booking._id,
+      paymentStatus: booking.paymentStatus,
+      bookingStatus: booking.bookingStatus,
+      paymentDetails: payment
+    });
+
+  } catch (error) {
+    console.error("Error getting payment status:", error);
     return res.status(500).json({ message: "Server error", success: false });
   }
 };
@@ -333,11 +607,29 @@ export const verifyTicket = async (req, res) => {
     }
 
     if (booking.checkInStatus === "checked-in") {
+      // Still fetch stats to keep the UI updated even on rescan
+      const totalBookings = await Booking.countDocuments({ 
+        eventId: booking.eventId._id, 
+        bookingStatus: "confirmed" 
+      });
+      const checkedInBookings = await Booking.countDocuments({ 
+        eventId: booking.eventId._id, 
+        checkInStatus: "checked-in" 
+      });
+      const attendancePercentage = totalBookings > 0 
+        ? Math.round((checkedInBookings / totalBookings) * 100) 
+        : 0;
+
       return res.status(400).json({ 
         message: "Already Checked In", 
         success: false,
         checkInTime: booking.checkInTime,
-        booking 
+        booking,
+        attendanceStats: {
+          total: totalBookings,
+          checkedIn: checkedInBookings,
+          percentage: attendancePercentage
+        }
       });
     }
 
@@ -411,10 +703,29 @@ export const verifyTicket = async (req, res) => {
       // Don't fail the whole check-in if gamification fails
     }
 
+    // Calculate attendance stats for this event
+    const totalBookings = await Booking.countDocuments({ 
+      eventId: booking.eventId._id, 
+      bookingStatus: "confirmed" 
+    });
+    const checkedInBookings = await Booking.countDocuments({ 
+      eventId: booking.eventId._id, 
+      checkInStatus: "checked-in" 
+    });
+
+    const attendancePercentage = totalBookings > 0 
+      ? Math.round((checkedInBookings / totalBookings) * 100) 
+      : 0;
+
     return res.status(200).json({
       message: "Check-in successful! Ticket verified and Passport updated.",
       success: true,
-      booking
+      booking,
+      attendanceStats: {
+        total: totalBookings,
+        checkedIn: checkedInBookings,
+        percentage: attendancePercentage
+      }
     });
   } catch (error) {
     console.error("Verify Ticket Error:", error);

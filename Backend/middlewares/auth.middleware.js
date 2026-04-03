@@ -23,6 +23,14 @@ export const verifyJwt = async(req,res,next) =>{
             })
         }
 
+        if (user.isBlocked) {
+            return res.status(403).json({
+                message: "Your account has been blocked by the admin. Please contact support.",
+                success: false,
+                isBlocked: true
+            });
+        }
+
         req.user = user;
         next();
 
@@ -50,4 +58,14 @@ export const optionalVerifyJwt = async (req, res, next) => {
     } catch (error) {
         next();
     }
+};
+
+export const isAdmin = async (req, res, next) => {
+    if (req.user?.role !== "admin") {
+        return res.status(403).json({
+            message: "Forbidden: Admin access required",
+            success: false
+        });
+    }
+    next();
 };

@@ -38,11 +38,12 @@ const voucherSchema = new mongoose.Schema(
       type: Number,
       default: null, // null means no limit
     },
-    eventId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Event",
-      default: null, // null means applicable to all events
-    },
+    eventIds: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Event",
+      }
+    ],
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -55,6 +56,10 @@ const voucherSchema = new mongoose.Schema(
     requiredBadge: {
       type: String,
       default: null, // If set, only users with this badge name can use it
+    },
+    isAdvertised: {
+      type: Boolean,
+      default: false,
     },
   },
   { timestamps: true }

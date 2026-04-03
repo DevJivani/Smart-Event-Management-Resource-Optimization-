@@ -1,7 +1,6 @@
 import { Voucher } from "../models/voucher.model.js";
 import { Event } from "../models/event.model.js";
 import { User } from "../models/user.model.js";
-import { Notification } from "../models/notification.model.js";
 import { Booking } from "../models/booking.model.js";
 
 // Create a new voucher (Organizer only)
@@ -15,7 +14,7 @@ export const createVoucher = async (req, res) => {
       usageLimit,
       minAmount,
       maxDiscount,
-      eventId,
+      eventIds,
       requiredBadge,
     } = req.body;
 
@@ -44,7 +43,7 @@ export const createVoucher = async (req, res) => {
       usageLimit,
       minAmount,
       maxDiscount,
-      eventId: eventId || null,
+      eventIds: eventIds || [],
       requiredBadge: requiredBadge || null,
       createdBy: organizerId,
     });
@@ -63,71 +62,11 @@ export const createVoucher = async (req, res) => {
   }
 };
 
-// Notify users about a voucher
-export const notifyUsers = async (req, res) => {
-  try {
-    const { voucherId } = req.params;
-    const organizerId = req.user._id;
-
-    const voucher = await Voucher.findOne({ _id: voucherId, createdBy: organizerId }).populate("eventId", "title");
-
-    if (!voucher) {
-      return res.status(404).json({
-        message: "Voucher not found or unauthorized",
-        success: false,
-      });
-    }
-
-    // Restrict scope: Notify ONLY users with role "user"
-    const usersToNotify = await User.find({ role: "user" });
-    console.log(`Voucher Notification: Notifying ${usersToNotify.length} regular users.`);
-
-    if (usersToNotify.length === 0) {
-      return res.status(200).json({
-        message: "No users found to notify.",
-        success: true,
-      });
-    }
-
-    const notificationTitle = `Special Offer: ${voucher.code}`;
-    const discountText = voucher.discountType === "percentage" ? `${voucher.discountValue}% OFF` : `₹${voucher.discountValue} OFF`;
-    const eventText = voucher.eventId ? `on ${voucher.eventId.title}` : "on any event";
-    
-    const notificationMessage = `Use code ${voucher.code} to get ${discountText} ${eventText}! Valid until ${new Date(voucher.expiryDate).toLocaleDateString()}.`;
-
-    const notifications = usersToNotify.map(user => ({
-      userId: user._id,
-      title: notificationTitle,
-      message: notificationMessage,
-    }));
-
-    try {
-      await Notification.insertMany(notifications);
-      console.log(`Voucher Notification Debug: Successfully inserted ${notifications.length} notifications into DB.`);
-    } catch (dbError) {
-      console.error("Voucher Notification Debug: Error during insertMany:", dbError);
-      throw dbError;
-    }
-
-    return res.status(200).json({
-      message: `Successfully sent notifications to ${notifications.length} users.`,
-      success: true,
-    });
-
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      message: "Server error",
-      success: false,
-    });
-  }
-};
-
 // Get all vouchers for an organizer
 export const getOrganizerVouchers = async (req, res) => {
   try {
     const organizerId = req.user._id;
-    const vouchers = await Voucher.find({ createdBy: organizerId }).populate("eventId", "title").sort({ createdAt: -1 });
+    const vouchers = await Voucher.find({ createdBy: organizerId }).populate("eventIds", "title").sort({ createdAt: -1 });
 
     return res.status(200).json({
       vouchers,
@@ -156,6 +95,27 @@ export const updateVoucher = async (req, res) => {
         message: "Voucher not found or unauthorized",
         success: false,
       });
+    }
+
+    if (updateData.code && updateData.code.toUpperCase() !== voucher.code) {
+      const existingVoucher = await Voucher.findOne({ code: updateData.code.toUpperCase() });
+      if (existingVoucher) {
+        return res.status(400).json({
+          message: "Voucher code already exists",
+          success: false,
+        });
+      }
+    }
+
+    // Clean up updateData to handle empty strings/arrays for ObjectIds
+    if (updateData.eventIds === "" || (Array.isArray(updateData.eventIds) && updateData.eventIds.length === 0)) {
+      updateData.eventIds = [];
+    }
+    if (updateData.requiredBadge === "") updateData.requiredBadge = null;
+
+    // Ensure boolean is not sent as string
+    if (typeof updateData.isAdvertised === 'string') {
+      updateData.isAdvertised = updateData.isAdvertised === 'true';
     }
 
     const updatedVoucher = await Voucher.findByIdAndUpdate(
@@ -232,7 +192,7 @@ export const getEligibleVouchers = async (req, res) => {
         { requiredBadge: null },
         { requiredBadge: { $in: userBadgeNames } }
       ]
-    }).populate("eventId", "title bannerImage");
+    }).populate("eventIds", "title bannerImage");
 
     return res.status(200).json({
       success: true,
@@ -243,6 +203,27 @@ export const getEligibleVouchers = async (req, res) => {
     return res.status(500).json({ message: "Server error", success: false });
   }
 };
+
+// Get all advertised vouchers
+export const getAdvertisedVouchers = async (req, res) => {
+  try {
+    const vouchers = await Voucher.find({
+      isActive: true,
+      isAdvertised: true,
+      expiryDate: { $gte: new Date() },
+      $or: [
+        { usageLimit: null },
+        { $expr: { $lt: ["$usedCount", "$usageLimit"] } }
+      ],
+    }).populate("eventIds", "title bannerImage").populate("createdBy", "name");
+
+    return res.status(200).json({ success: true, vouchers });
+  } catch (error) {
+    console.error("Error fetching advertised vouchers:", error);
+    return res.status(500).json({ message: "Server error", success: false });
+  }
+};
+
 
 // Validate a voucher (for User during booking)
 export const validateVoucher = async (req, res) => {
@@ -293,12 +274,14 @@ export const validateVoucher = async (req, res) => {
       }
     }
 
-    // Check if applicable to the event
-    if (voucher.eventId && voucher.eventId.toString() !== eventId) {
-      return res.status(400).json({
-        message: "Voucher is not applicable for this event",
-        success: false,
-      });
+    // Check if voucher is valid for this specific event
+    if (voucher.eventIds && voucher.eventIds.length > 0) {
+      if (!voucher.eventIds.includes(eventId)) {
+        return res.status(400).json({
+          message: "Voucher not applicable for this event",
+          success: false,
+        });
+      }
     }
 
     // Check minimum amount

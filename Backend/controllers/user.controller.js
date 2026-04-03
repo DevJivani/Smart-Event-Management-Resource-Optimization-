@@ -140,6 +140,14 @@ export const userLogin = async (req, res) => {
             });
         }
 
+        if (user.isBlocked) {
+            return res.status(403).json({
+                message: "Your account has been blocked by the admin. Please contact support.",
+                success: false,
+                isBlocked: true
+            });
+        }
+
         if (role === "admin") {
             if (email !== ADMIN_EMAIL) {
                 return res.status(403).json({
@@ -280,7 +288,7 @@ export const userLogout = async (req, res) => {
 // Update Profile Controller
 export const updateProfile = async (req, res) => {
     try {
-        const { userId, name, email, phone, interests } = req.body;
+        const { userId, name, email, phone, interests, upiId } = req.body;
 
         if (!userId) {
             return res.status(400).json({
@@ -313,6 +321,7 @@ export const updateProfile = async (req, res) => {
         if (name) user.name = name;
         if (email) user.email = email;
         if (phone) user.phone = phone;
+        if (upiId !== undefined) user.upiId = upiId;
         if (interests !== undefined) user.interests = interests;
 
         await user.save();
@@ -815,15 +824,54 @@ export const getPublicProfile = async (req, res) => {
         }
 
         // If public, fetch additional data
-        // 1. Fetch recent reviews
         const { Review } = await import("../models/review.model.js");
+        const { Booking } = await import("../models/booking.model.js");
+        const { Event } = await import("../models/event.model.js");
+
+        if (user.role === "organizer") {
+            // Fetch organizer's events
+            const hostedEvents = await Event.find({ createdBy: userId })
+                .populate("categoryId", "name")
+                .sort({ createdAt: -1 })
+                .limit(6);
+
+            const totalEvents = await Event.countDocuments({ createdBy: userId });
+            const completedEvents = await Event.countDocuments({ createdBy: userId, status: "completed" });
+
+            // Calculate average rating for organizer's events
+            const organizerEvents = await Event.find({ createdBy: userId }).select("_id");
+            const eventIds = organizerEvents.map(e => e._id);
+            const reviews = await Review.find({ eventId: { $in: eventIds }, visible: true });
+            
+            const avgRating = reviews.length > 0 
+                ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)
+                : 0;
+
+            return res.status(200).json({
+                message: "Public profile fetched successfully",
+                user: {
+                    ...profileData,
+                    hostedEvents,
+                    stats: {
+                        totalEvents,
+                        completedEvents,
+                        avgRating,
+                        totalReviews: reviews.length
+                    }
+                },
+                success: true,
+                isPrivate: false
+            });
+        }
+
+        // For regular users
+        // 1. Fetch recent reviews
         const reviews = await Review.find({ userId, visible: true })
             .populate("eventId", "title bannerImage venue city startDate")
             .sort({ createdAt: -1 })
             .limit(5);
 
         // 2. Fetch attended events (bookings)
-        const { Booking } = await import("../models/booking.model.js");
         const attendedEvents = await Booking.find({ userId, paymentStatus: "paid" })
             .populate("eventId", "title bannerImage venue city startDate")
             .sort({ createdAt: -1 })
@@ -896,3 +944,141 @@ export const verify2FA = async (req, res) => {
         return res.status(500).json({ message: "Server error", success: false });
     }
 }
+
+// Admin: Get All Users
+export const getAllUsers = async (req, res) => {
+    try {
+        const users = await User.find({ role: "user" }).select("-password").sort({ createdAt: -1 });
+        return res.status(200).json({
+            success: true,
+            users
+        });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ message: "Server error", success: false });
+    }
+};
+
+// Admin: Get All Organizers
+export const getAllOrganizers = async (req, res) => {
+    try {
+        const organizers = await User.find({ role: "organizer" }).select("-password").sort({ createdAt: -1 });
+        return res.status(200).json({
+            success: true,
+            organizers
+        });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ message: "Server error", success: false });
+    }
+};
+
+// Admin: Toggle User/Organizer Account Status
+export const toggleUserStatus = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const user = await User.findById(userId);
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found", success: false });
+        }
+
+        user.isBlocked = !user.isBlocked;
+        await user.save();
+
+        return res.status(200).json({
+            message: `User ${user.isBlocked ? "blocked" : "unblocked"} successfully`,
+            success: true,
+            user
+        });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ message: "Server error", success: false });
+    }
+};
+
+// Contact Us Controller
+export const contactUs = async (req, res) => {
+    try {
+        const { name, email, subject, message } = req.body;
+
+        if (!name || !email || !subject || !message) {
+            return res.status(400).json({
+                message: "All fields are required",
+                success: false
+            });
+        }
+
+        // Development mode: Log contact message to console instead of sending email
+        console.log(`\n========== CONTACT US MESSAGE ==========`);
+        console.log(`From: ${name} (${email})`);
+        console.log(`Subject: ${subject}`);
+        console.log(`Message: ${message}`);
+        console.log(`==========================================\n`);
+
+        // Only attempt to send email if credentials are provided
+        if (process.env.EMAIL_USER && process.env.EMAIL_PASSWORD) {
+            try {
+                const transporter = nodemailer.createTransport({
+                    service: 'gmail',
+                    auth: {
+                        user: process.env.EMAIL_USER,
+                        pass: process.env.EMAIL_PASSWORD
+                    }
+                });
+
+                const mailOptions = {
+                    from: process.env.EMAIL_USER, 
+                    to: process.env.EMAIL_USER,
+                    replyTo: email,
+                    subject: `Contact Us: ${subject} - ${name}`,
+                    html: `
+                        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 20px auto; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border: 1px solid #f0f0f0;">
+                            <!-- Header Area -->
+                            <div style="background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); padding: 40px 30px; text-align: center; color: white;">
+                                <div style="background: rgba(255,255,255,0.2); width: 60px; height: 60px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 15px; backdrop-blur: 5px;">
+                                    <span style="font-size: 30px;">✉️</span>
+                                </div>
+                                <h1 style="margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.5px;">New Inquiry</h1>
+                                <p style="margin: 8px 0 0 0; opacity: 0.9; font-size: 15px;">Someone is trying to reach out to EventHub</p>
+                            </div>
+
+                            <!-- Content Area -->
+                            <div style="padding: 35px; background: white;">
+                                <div style="margin-bottom: 0;">
+                                    <label style="display: block; color: #94a3b8; font-size: 11px; text-transform: uppercase; font-weight: 800; letter-spacing: 1px; margin-bottom: 10px;">The Message</label>
+                                    <div style="background: #f8fafc; border-radius: 12px; padding: 25px; color: #334155; font-size: 16px; line-height: 1.8; border: 1px solid #e2e8f0; white-space: pre-wrap; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);">${message}</div>
+                                </div>
+                            </div>
+
+                            <!-- Footer Area -->
+                            <div style="background: #f8fafc; padding: 25px; text-align: center; border-top: 1px solid #f1f5f9;">
+                                <p style="color: #94a3b8; font-size: 12px; margin: 0;">You can reply directly to this email to contact <strong>${name}</strong>.</p>
+                                <div style="margin-top: 15px; font-weight: 700; color: #6366f1; font-size: 13px;">EventHub Administrator</div>
+                            </div>
+                        </div>
+                    `
+                };
+
+                await transporter.sendMail(mailOptions);
+                console.log("Contact email sent successfully");
+            } catch (emailError) {
+                console.error("Email sending error (Contact Us):", emailError);
+                // We don't return here because we want to at least return success if it's logged to console
+            }
+        } else {
+            console.log("Email credentials missing in .env, skipping email send");
+        }
+
+        return res.status(200).json({
+            message: "Message sent successfully! We will get back to you soon.",
+            success: true
+        });
+    } catch (error) {
+        console.error("Contact Us Error:", error);
+        return res.status(500).json({
+            message: "Failed to send message",
+            success: false
+        });
+    }
+};

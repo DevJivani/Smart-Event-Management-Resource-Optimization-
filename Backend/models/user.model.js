@@ -61,6 +61,10 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    upiId: {
+      type: String,
+      default: null,
+    },
     interests: [
       {
         type: mongoose.Schema.Types.ObjectId,

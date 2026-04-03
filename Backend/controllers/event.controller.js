@@ -8,6 +8,7 @@ import { User } from "../models/user.model.js";
 import { Review } from "../models/review.model.js";
 import { Notification } from "../models/notification.model.js";
 import { Message } from "../models/message.model.js";
+import { Booking } from "../models/booking.model.js";
 import fs from "fs/promises";
 
 const buildDateTime = (date, time, isEnd) => {
@@ -80,6 +81,189 @@ export const getAllEvents = async (req, res) => {
     }
 };
 
+// Get recommended events for a user
+export const getRecommendedEvents = async (req, res) => {
+    try {
+        const userId = req.user?._id;
+        let recommendedCategories = [];
+
+        if (userId) {
+            // 1. Get user's manually selected interests
+            const user = await User.findById(userId);
+            if (user?.interests?.length > 0) {
+                recommendedCategories = [...user.interests];
+            }
+
+            // 2. Get categories from user's booking history
+            const userBookings = await Booking.find({ userId }).populate("eventId");
+            const historyCategories = userBookings
+                .map(b => b.eventId?.categoryId)
+                .filter(id => id != null);
+            
+            recommendedCategories = [...new Set([...recommendedCategories, ...historyCategories])];
+        }
+
+        const query = {
+            isApproved: true,
+            isDisabled: false,
+            startDate: { $gte: new Date() } // Only upcoming events
+        };
+
+        if (recommendedCategories.length > 0) {
+            query.categoryId = { $in: recommendedCategories };
+        }
+
+        // If user is logged in, exclude events they already booked
+        if (userId) {
+            const bookedEventIds = await Booking.find({ userId }).distinct("eventId");
+            query._id = { $nin: bookedEventIds };
+        }
+
+        let events = await Event.find(query)
+            .populate("categoryId", "name")
+            .populate("createdBy", "name email")
+            .sort({ startDate: 1 })
+            .limit(10);
+
+        // If not enough personalized recommendations, fill with popular/latest events
+        if (events.length < 4) {
+            const extraEvents = await Event.find({
+                isApproved: true,
+                isDisabled: false,
+                startDate: { $gte: new Date() },
+                _id: { $nin: [...(events.map(e => e._id)), ...(userId ? await Booking.find({ userId }).distinct("eventId") : [])] }
+            })
+            .populate("categoryId", "name")
+            .populate("createdBy", "name email")
+            .sort({ createdAt: -1 })
+            .limit(10 - events.length);
+            
+            events = [...events, ...extraEvents];
+        }
+
+        return res.status(200).json({
+            success: true,
+            events
+        });
+    } catch (error) {
+        console.error("Error fetching recommendations:", error);
+        return res.status(500).json({
+            message: "Server error",
+            success: false
+        });
+    }
+};
+
+// AI Smart Search - Natural Language Query Parser
+export const smartSearch = async (req, res) => {
+    try {
+        const { query } = req.query;
+        if (!query) {
+            return res.status(400).json({ message: "Query is required", success: false });
+        }
+
+        // 1. Basic parsing for budget
+        let maxPrice = null;
+        const budgetMatch = query.match(/(?:under|within|budget|₹|rs\.?)\s*(\d+)/i);
+        if (budgetMatch) {
+            maxPrice = parseInt(budgetMatch[1]);
+        }
+
+        // 2. Basic parsing for location (common cities)
+        const cities = ["mumbai", "delhi", "bangalore", "pune", "chennai", "kolkata", "hyderabad", "ahmedabad", "surat", "jaipur", "morbi"];
+        let city = null;
+        for (const c of cities) {
+            if (query.toLowerCase().includes(c)) {
+                city = c;
+                break;
+            }
+        }
+
+        // 3. Category matching
+        const allCategories = await EventCategory.find({ isActive: true });
+        let categoryId = null;
+        for (const cat of allCategories) {
+            if (query.toLowerCase().includes(cat.name.toLowerCase())) {
+                categoryId = cat._id;
+                break;
+            }
+        }
+
+        // 4. Date parsing (simplified)
+        let dateFilter = { $gte: new Date() };
+        if (query.toLowerCase().includes("tonight") || query.toLowerCase().includes("today")) {
+            const endOfDay = new Date();
+            endOfDay.setHours(23, 59, 59, 999);
+            dateFilter = { $gte: new Date(), $lte: endOfDay };
+        } else if (query.toLowerCase().includes("tomorrow")) {
+            const tomorrowStart = new Date();
+            tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+            tomorrowStart.setHours(0, 0, 0, 0);
+            const tomorrowEnd = new Date();
+            tomorrowEnd.setDate(tomorrowEnd.getDate() + 1);
+            tomorrowEnd.setHours(23, 59, 59, 999);
+            dateFilter = { $gte: tomorrowStart, $lte: tomorrowEnd };
+        } else if (query.toLowerCase().includes("weekend")) {
+            const today = new Date();
+            const friday = new Date(today);
+            friday.setDate(today.getDate() + (5 - today.getDay()));
+            const sunday = new Date(today);
+            sunday.setDate(today.getDate() + (7 - today.getDay()));
+            dateFilter = { $gte: friday, $lte: sunday };
+        }
+
+        // Build Final Query
+        const searchCriteria = {
+            isApproved: true,
+            isDisabled: false,
+            startDate: dateFilter
+        };
+
+        if (maxPrice !== null) {
+            searchCriteria.price = { $lte: maxPrice };
+        }
+        if (city) {
+            searchCriteria.city = new RegExp(city, "i");
+        }
+        if (categoryId) {
+            searchCriteria.categoryId = categoryId;
+        }
+
+        // Text search fallback: If no city or category was found in the query, 
+        // search for the raw query string across multiple fields.
+        if (!city && !categoryId) {
+            searchCriteria.$or = [
+                { title: { $regex: query, $options: "i" } },
+                { description: { $regex: query, $options: "i" } },
+                { venue: { $regex: query, $options: "i" } },
+                { city: { $regex: query, $options: "i" } }
+            ];
+        }
+
+        const events = await Event.find(searchCriteria)
+            .populate("categoryId", "name")
+            .populate("createdBy", "name email")
+            .sort({ startDate: 1 })
+            .limit(10);
+
+        // Analysis message for the user
+        let analysis = "Here's what I found based on your request.";
+        if (maxPrice || city || categoryId) {
+            analysis = `Searching for events ${categoryId ? `in ${allCategories.find(c => String(c._id) === String(categoryId))?.name} ` : ""}${city ? `in ${city.charAt(0).toUpperCase() + city.slice(1)} ` : ""}${maxPrice ? `under ₹${maxPrice}` : ""}.`;
+        }
+
+        return res.status(200).json({
+            success: true,
+            events,
+            analysis
+        });
+
+    } catch (error) {
+        console.error("Smart search error:", error);
+        return res.status(500).json({ message: "Server error", success: false });
+    }
+};
+
 // Get all events by organizer
 export const getOrganizerEvents = async (req, res) => {
     try {
@@ -136,7 +320,7 @@ export const contactOrganizer = async (req, res) => {
             senderId: req.user?._id, // included if logged in
             name,
             email,
-            message,
+            messages: [{ senderType: "user", content: message, timestamp: new Date() }],
         });
 
         // Still send a notification for immediate alert
@@ -209,6 +393,15 @@ export const createEvent = async (req, res) => {
         const cleaned = rawPrice.replace(/,/g, "").replace(/[^\d.]/g, "");
         const price = cleaned ? Number(cleaned) : NaN;
         if (isPaid) {
+            // Check if organizer has set up UPI ID before allowing them to create a paid event
+            const organizer = await User.findById(organizerId);
+            if (!organizer || !organizer.upiId) {
+                return res.status(400).json({
+                    message: "You must set your UPI ID in your profile before creating a paid event.",
+                    success: false
+                });
+            }
+
             if (!Number.isFinite(price) || price <= 0) {
                 return res.status(400).json({
                     message: "Price must be provided for paid events and must be greater than 0",
@@ -377,8 +570,51 @@ export const updateEvent = async (req, res) => {
             }
         }
 
-        // Update fields if provided and track changes to require re-approval
+        // Track changes to require re-approval
         let changed = false;
+        
+        // Handle isPaid and price if provided
+        if (req.body.isPaid !== undefined) {
+            const paidVal = req.body.isPaid;
+            const isPaid =
+                paidVal === true ||
+                paidVal === "true" ||
+                paidVal === "on" ||
+                paidVal === "1" ||
+                paidVal === 1;
+            
+            if (isPaid !== event.isPaid) {
+                if (isPaid) {
+                    // Check for UPI ID if changing to paid
+                    const organizer = await User.findById(organizerId);
+                    if (!organizer || !organizer.upiId) {
+                        return res.status(400).json({
+                            message: "You must set your UPI ID in your profile before making an event paid.",
+                            success: false
+                        });
+                    }
+                }
+                event.isPaid = isPaid;
+                changed = true;
+            }
+        }
+
+        if (req.body.price !== undefined) {
+            const rawPrice = String(req.body.price);
+            const cleaned = rawPrice.replace(/,/g, "").replace(/[^\d.]/g, "");
+            const price = cleaned ? Number(cleaned) : 0;
+            if (event.isPaid && price <= 0) {
+                return res.status(400).json({
+                    message: "Price must be greater than 0 for paid events",
+                    success: false
+                });
+            }
+            if (price !== event.price) {
+                event.price = price;
+                changed = true;
+            }
+        }
+
         if (title && title !== event.title) { event.title = title; changed = true; }
         if (description !== undefined && description !== event.description) { event.description = description; changed = true; }
         if (categoryId && String(categoryId) !== String(event.categoryId)) { event.categoryId = categoryId; changed = true; }
@@ -422,6 +658,18 @@ export const updateEvent = async (req, res) => {
         }
 
         await event.save();
+
+        // Sync with Ticket model
+        if (event.isPaid) {
+            await Ticket.findOneAndUpdate(
+                { eventId: event._id, ticketType: "Regular" },
+                { price: event.price, quantity: event.totalSeats },
+                { upsert: true }
+            );
+        } else {
+            // If changed from paid to free, maybe delete or disable the ticket
+            await Ticket.findOneAndDelete({ eventId: event._id, ticketType: "Regular" });
+        }
 
         const populatedEvent = await Event.findById(event._id)
             .populate("categoryId", "name")

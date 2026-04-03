@@ -28,22 +28,28 @@ function ensureConfigured() {
 export async function uploadToCloudinary(filePath, { folder } = {}) {
   if (!filePath) return null;
 
-  ensureConfigured();
+  try {
+    ensureConfigured();
 
-  const result = await cloudinary.uploader.upload(filePath, {
-    folder: folder || "eventhub",
-    resource_type: "image",
-  });
+    const result = await cloudinary.uploader.upload(filePath, {
+      folder: folder || "eventhub",
+      resource_type: "image",
+    });
 
-  // Optionally delete the local file after upload
-  fs.unlink(filePath, (err) => {
-    if (err) {
-      console.error("Error deleting local file:", err);
+    return result;
+  } catch (error) {
+    console.error("Error uploading to Cloudinary:", error);
+    throw error;
+  } finally {
+    // ALWAYS delete the local file after upload (success or failure)
+    if (fs.existsSync(filePath)) {
+      fs.unlink(filePath, (err) => {
+        if (err) {
+          console.error("Error deleting local file:", err);
+        }
+      });
     }
-  });
-
-
-  return result;
+  }
 }
 
 export { cloudinary };
