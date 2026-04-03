@@ -102,6 +102,7 @@ export default function OrganizerEventEdit() {
     if (form.isPaid) {
       const price = Number(form.price || 0);
       if (Number.isNaN(price) || price <= 0) errs.price = "Price must be greater than 0 for paid events";
+      if (!user?.upiId) errs.upiId = "You must set your UPI ID in your profile for a paid event.";
     }
     if (form.endDate && form.startDate) {
       try {
@@ -122,7 +123,11 @@ export default function OrganizerEventEdit() {
       return;
     }
     if (!isValid) {
-      toast.error("Fix validation errors before saving");
+      if (errors.upiId) {
+        toast.error(errors.upiId);
+      } else {
+        toast.error("Fix validation errors before saving");
+      }
       return;
     }
     try {

@@ -22,6 +22,8 @@ export default function EventDetails() {
     message: ""
   });
   const [sending, setSending] = useState(false);
+  const [matches, setMatches] = useState([]);
+  const [matchesLoading, setMatchesLoading] = useState(false);
 
   const categoryGradient = (name) => {
     const key = (name || "").toLowerCase();
@@ -56,6 +58,24 @@ export default function EventDetails() {
     };
     if (eventId) fetchEvent();
   }, [eventId]);
+
+  useEffect(() => {
+    const fetchMatches = async () => {
+      if (!user || !eventId) return;
+      try {
+        setMatchesLoading(true);
+        const res = await axiosInstance.get(`/api/v1/matchmaker/matches/${eventId}`);
+        if (res.data?.success) {
+          setMatches(res.data.matches);
+        }
+      } catch (err) {
+        console.error("Error fetching matches:", err);
+      } finally {
+        setMatchesLoading(false);
+      }
+    };
+    fetchMatches();
+  }, [eventId, user]);
 
   const formatPrice = (n) => Number(n || 0).toFixed(2);
   const shareUrl = typeof window !== "undefined" ? window.location.href : "";
@@ -155,6 +175,44 @@ export default function EventDetails() {
       toast.error(err.response?.data?.message || "Error sending message");
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleConnect = async (attendeeId, type = "connect") => {
+    if (!user) return navigate("/login");
+    try {
+      const message = type === "hello" 
+        ? "Quick hello! I saw we share interests and are attending the same event. See you there!"
+        : "Hi! I'd love to connect and chat about our shared interests before the event!";
+      
+      const res = await axiosInstance.post("/api/v1/matchmaker/connect", {
+        receiverId: attendeeId,
+        eventId,
+        message
+      });
+      
+      if (res.data?.success) {
+        toast.success(type === "hello" ? "Quick hello sent!" : "Connection request sent!");
+        // Update local state to reflect connection sent
+        setMatches(prev => prev.map(m => 
+          m._id === attendeeId ? { ...m, connectionStatus: "pending", isSender: true } : m
+        ));
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Error connecting");
+    }
+  };
+
+  const handleBlock = async (blockUserId) => {
+    if (!window.confirm("Are you sure you want to block this user? You will no longer see each other at events and any existing connections will be removed.")) return;
+    try {
+      const res = await axiosInstance.post("/api/v1/matchmaker/block", { blockUserId });
+      if (res.data?.success) {
+        toast.success("User blocked");
+        setMatches(prev => prev.filter(m => m._id !== blockUserId));
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Error blocking user");
     }
   };
 
@@ -323,8 +381,119 @@ export default function EventDetails() {
                 )}
 
                 <div className="border-t border-gray-100 dark:border-gray-800 pt-8">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h2 className="text-xl font-bold text-gray-900 dark:text-white">AI Social Matchmaker</h2>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Connect with people sharing your interests!</p>
+                    </div>
+                    <div className="px-3 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 rounded-full text-xs font-bold border border-indigo-200 dark:border-indigo-800">
+                      AI Powered
+                    </div>
+                  </div>
+
+                  {!user ? (
+                    <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 rounded-2xl p-6 text-center">
+                      <p className="text-gray-700 dark:text-gray-300 mb-4">Sign in to see who else with similar interests is attending!</p>
+                      <button onClick={() => navigate("/login")} className="px-6 py-2 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all">
+                        Sign In
+                      </button>
+                    </div>
+                  ) : matchesLoading ? (
+                    <div className="flex justify-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                    </div>
+                  ) : matches.length > 0 ? (
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      {matches.map((match) => (
+                        <div key={match._id} className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-5 hover:shadow-md transition-all group">
+                          <div className="flex items-start gap-4 mb-4">
+                            <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-indigo-500/20 bg-gray-100 dark:bg-gray-700 flex-shrink-0">
+                              {match.profileImage ? (
+                                <img src={match.profileImage} alt={match.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-xl font-bold text-indigo-600 dark:text-indigo-400">
+                                  {match.name.charAt(0)}
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between">
+                                <h3 className="font-bold text-gray-900 dark:text-white truncate group-hover:text-indigo-600 transition-colors">
+                                  {match.name}
+                                </h3>
+                                <button 
+                                  onClick={() => handleBlock(match._id)}
+                                  className="text-gray-400 hover:text-red-500 p-1 transition-colors"
+                                  title="Block User"
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                  </svg>
+                                </button>
+                              </div>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {match.sharedInterests.map((interest, idx) => (
+                                  <span key={idx} className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold rounded-md border border-emerald-100 dark:border-emerald-800/50">
+                                    {interest}
+                                  </span>
+                                ))}
+                              </div>
+                              <p className="text-[10px] text-gray-500 mt-2 italic">You both love {match.sharedInterests.join(" & ")}!</p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex gap-2">
+                            {match.connectionStatus === "none" ? (
+                              <>
+                                <button 
+                                  onClick={() => handleConnect(match._id, "hello")}
+                                  className="flex-1 py-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-all"
+                                >
+                                  Quick Hello
+                                </button>
+                                <button 
+                                  onClick={() => handleConnect(match._id, "connect")}
+                                  className="flex-1 py-2 text-xs font-bold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 shadow-sm transition-all"
+                                >
+                                  Connect
+                                </button>
+                              </>
+                            ) : match.connectionStatus === "accepted" ? (
+                              <button 
+                                onClick={() => navigate("/chat", { state: { receiverId: match._id, eventId } })}
+                                className="w-full py-2 text-xs font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 shadow-sm transition-all"
+                              >
+                                Chat
+                              </button>
+                            ) : (
+                              <div className="w-full py-2 text-center text-xs font-bold rounded-xl bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border border-amber-100 dark:border-amber-800">
+                                {match.isSender ? "Request Sent" : "Request Received"}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 rounded-2xl p-8 text-center">
+                      <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                      </div>
+                      <p className="text-gray-500 dark:text-gray-400 font-medium">No matches found yet. Be the first to connect!</p>
+                      <p className="text-xs text-gray-400 mt-1">We'll show you attendees with shared interests as they join.</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="border-t border-gray-100 dark:border-gray-800 pt-8">
                   <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Reviews & Ratings</h2>
-                  <ReviewWidget eventId={event._id} canWrite={!!user && user.role === "user"} />
+                  <ReviewWidget 
+                    eventId={event._id} 
+                    canWrite={!!user && user.role === "user"} 
+                    canReply={!!user} // Allow all logged in users to reply
+                  />
                 </div>
               </div>
             </section>

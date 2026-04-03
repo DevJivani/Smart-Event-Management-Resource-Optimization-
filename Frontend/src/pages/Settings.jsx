@@ -20,6 +20,46 @@ const Settings = () => {
     twoFactorAuth: user?.twoFactorAuth ?? false,
   });
 
+  const [blockedUsers, setBlockedUsers] = useState([]);
+  const [fetchingBlocked, setFetchingBlocked] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const fetchBlockedUsers = async () => {
+    if (user?.role === 'organizer') return; // Organizers don't need this
+    try {
+      setFetchingBlocked(true);
+      const res = await axiosInstance.get("/api/v1/matchmaker/blocked-list");
+      if (res.data.success) {
+        setBlockedUsers(res.data.blockedUsers);
+      }
+    } catch (error) {
+      console.error("Error fetching blocked users", error);
+    } finally {
+      setFetchingBlocked(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    dispatch(setLoading(true));
+    try {
+      await axiosInstance.get("/api/v1/user/logout");
+      dispatch(setUser(null));
+      navigate("/login");
+    } catch (error) {
+      console.log(error);
+    } finally {
+      dispatch(setLoading(false));
+      setIsLoggingOut(false);
+    }
+  };
+
+  const handleLogoutClick = () => {
+    setIsLoggingOut(true);
+    setTimeout(() => {
+      handleLogout();
+    }, 1500);
+  };
+
   useEffect(() => {
     if (user) {
       setSettings({
@@ -27,8 +67,21 @@ const Settings = () => {
         publicProfile: user.publicProfile ?? false,
         twoFactorAuth: user.twoFactorAuth ?? false,
       });
+      fetchBlockedUsers();
     }
   }, [user]);
+
+  const handleUnblock = async (userId) => {
+    try {
+      const res = await axiosInstance.post("/api/v1/matchmaker/unblock", { unblockUserId: userId });
+      if (res.data.success) {
+        toast.success("User unblocked");
+        setBlockedUsers((prev) => prev.filter((u) => u._id !== userId));
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to unblock user");
+    }
+  };
 
   const handleToggle = async (name) => {
     const newValue = !settings[name];
@@ -134,28 +187,30 @@ const Settings = () => {
         </section>
 
         {/* Notifications Section */}
-        <section className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-6 md:p-8 transition-colors">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 flex items-center justify-center">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-              </svg>
+        {user?.role !== 'organizer' && (
+          <section className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-6 md:p-8 transition-colors">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Notifications</h2>
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Notifications</h2>
-          </div>
 
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-800/30 rounded-2xl transition-colors cursor-pointer" onClick={() => handleToggle('emailNotifications')}>
-              <div>
-                <p className="font-bold text-gray-900 dark:text-white">Email Notifications</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Receive event updates and reminders via email</p>
-              </div>
-              <div className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${settings.emailNotifications ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-gray-700'}`}>
-                <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${settings.emailNotifications ? 'translate-x-6' : 'translate-x-1'}`} />
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-800/30 rounded-2xl transition-colors cursor-pointer" onClick={() => handleToggle('emailNotifications')}>
+                <div>
+                  <p className="font-bold text-gray-900 dark:text-white">Email Notifications</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Receive event updates and reminders via email</p>
+                </div>
+                <div className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${settings.emailNotifications ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-gray-700'}`}>
+                  <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${settings.emailNotifications ? 'translate-x-6' : 'translate-x-1'}`} />
+                </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
 
         {/* Account Privacy Section */}
         <section className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-6 md:p-8 transition-colors">
@@ -190,6 +245,95 @@ const Settings = () => {
             </div>
           </div>
         </section>
+
+        {/* Blocked Users Section */}
+        {user?.role !== 'organizer' && (
+          <section className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-6 md:p-8 transition-colors">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 flex items-center justify-center">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Blocked Users</h2>
+            </div>
+
+            <div className="space-y-4">
+              {fetchingBlocked ? (
+                <div className="flex justify-center py-4">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
+                </div>
+              ) : blockedUsers.length === 0 ? (
+                <div className="p-8 text-center bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
+                  <p className="text-gray-500 dark:text-gray-400 italic">No blocked users</p>
+                </div>
+              ) : (
+                <div className="grid gap-3">
+                  {blockedUsers.map((blockedUser) => (
+                    <div key={blockedUser._id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-800 group">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+                          {blockedUser.profileImage ? (
+                            <img src={blockedUser.profileImage} alt={blockedUser.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-sm font-bold text-gray-400">
+                              {blockedUser.name.charAt(0)}
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-bold text-gray-900 dark:text-white">{blockedUser.name}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{blockedUser.email}</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleUnblock(blockedUser._id)}
+                        className="px-4 py-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-all"
+                      >
+                        Unblock
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* Logout Section for Organizers */}
+        {user?.role === 'organizer' && (
+          <section className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-6 md:p-8 transition-colors">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 flex items-center justify-center">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Account Session</h2>
+            </div>
+
+            <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-800 flex items-center justify-between">
+              <div>
+                <p className="font-bold text-gray-900 dark:text-white">Sign Out</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Logout from your current session</p>
+              </div>
+              <button
+                onClick={handleLogoutClick}
+                disabled={isLoggingOut}
+                className="p-3 bg-red-600 hover:bg-red-700 text-white rounded-xl shadow-lg shadow-red-500/20 transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center group disabled:opacity-50"
+                title="Logout"
+              >
+                {isLoggingOut ? (
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                ) : (
+                  <svg className="w-6 h-6 group-hover:rotate-12 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                )}
+              </button>
+            </div>
+          </section>
+        )}
 
         {/* Danger Zone Section */}
         <section className="bg-red-50 dark:bg-red-950/20 rounded-2xl shadow-sm border border-red-100 dark:border-red-900/30 p-6 md:p-8 transition-colors">

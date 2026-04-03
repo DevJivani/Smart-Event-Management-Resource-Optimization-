@@ -149,87 +149,128 @@ export default function ReviewWidget({ eventId, canWrite = false, canReply = fal
             const mainRole = r.userId?.role;
             const isOrganizer = mainRole === "organizer";
             return (
-            <div key={r._id || r.id} className={`group relative rounded-2xl p-6 transition-all duration-300 ${
-              isOrganizer 
-                ? "bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/20" 
-                : "bg-white dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 hover:shadow-lg hover:shadow-gray-200/50 dark:hover:shadow-none"
-            }`}>
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-4">
-                  <Link to={`/profile/${r.userId?._id || r.userId}`} className={`w-11 h-11 rounded-xl flex items-center justify-center text-sm font-bold shadow-sm transition-transform hover:scale-105 ${
-                    isOrganizer 
-                      ? "bg-blue-600 text-white" 
-                      : "bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 text-gray-700 dark:text-gray-200"
-                  }`}>
-                    {(r.userId?.name || "-").toString().charAt(0).toUpperCase()}
-                  </Link>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <Link to={`/profile/${r.userId?._id || r.userId}`} className="text-sm font-bold text-gray-900 dark:text-white hover:text-indigo-600 transition-colors">
-                        {r.userId?.name || "User"}
-                      </Link>
-                      {isOrganizer && (
-                        <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-lg bg-blue-600 text-white font-bold uppercase tracking-tighter">
-                          Organizer
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-[11px] font-bold text-gray-400 dark:text-gray-500 mt-0.5">
-                      {new Date(r.createdAt || Date.now()).toLocaleDateString()}
+              <div
+                key={r._id || r.id}
+                className={`group relative rounded-2xl p-6 transition-all duration-300 ${
+                  isOrganizer
+                    ? "bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/20"
+                    : "bg-white dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 hover:shadow-lg hover:shadow-gray-200/50 dark:hover:shadow-none"
+                }`}>
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-4">
+                    <Link
+                      to={`/profile/${r.userId?._id || r.userId}`}
+                      className={`w-11 h-11 rounded-xl flex items-center justify-center text-sm font-bold shadow-sm transition-transform hover:scale-105 ${
+                        isOrganizer
+                          ? "bg-blue-600 text-white"
+                          : "bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 text-gray-700 dark:text-gray-200"
+                      }`}>
+                      {(r.userId?.name || "-").toString().charAt(0).toUpperCase()}
+                    </Link>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Link
+                          to={`/profile/${r.userId?._id || r.userId}`}
+                          className="text-sm font-bold text-gray-900 dark:text-white hover:text-indigo-600 transition-colors">
+                          {r.userId?.name || "User"}
+                        </Link>
+                        {isOrganizer && (
+                          <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-lg bg-blue-600 text-white font-bold uppercase tracking-tighter">
+                            Organizer
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[11px] font-bold text-gray-400 dark:text-gray-500 mt-0.5">
+                        {new Date(r.createdAt || Date.now()).toLocaleDateString()}
+                      </div>
                     </div>
                   </div>
+                  <Stars value={Number(r.rating || 0)} />
                 </div>
-                <Stars value={Number(r.rating || 0)} />
-              </div>
-              <p className="mt-4 text-sm text-gray-600 dark:text-gray-300 leading-relaxed">{r.comment || r.text || "-"}</p>
-              
-              {(r.replies || []).length > 0 && (
-                <div className="mt-6 ml-4 pl-6 border-l-2 border-indigo-100 dark:border-gray-700 space-y-4">
-                  {r.replies.map((rep, idx) => {
-                    const isRepOrganizer = rep.userId?.role === "organizer";
-                    return (
-                      <div key={idx} className="relative">
-                        <div className="flex items-center gap-3">
-                          <Link to={`/profile/${rep.userId?._id || rep.userId}`} className={`w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold transition-transform hover:scale-105 ${
-                            isRepOrganizer 
-                              ? "bg-blue-600 text-white" 
-                              : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
-                          }`}>
-                            {(rep.userId?.name || "-").toString().charAt(0).toUpperCase()}
-                          </Link>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <Link to={`/profile/${rep.userId?._id || rep.userId}`} className="text-xs font-bold text-gray-900 dark:text-white hover:text-indigo-600 transition-colors">
-                                {rep.userId?.name || "User"}
-                              </Link>
-                              {isRepOrganizer && (
-                                <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-bold uppercase tracking-tighter">
-                                  Organizer
-                                </span>
-                              )}
+                <p className="mt-4 text-sm text-gray-600 dark:text-gray-300 leading-relaxed">{r.comment || r.text || "-"}</p>
+
+                {/* Main Review Action Buttons */}
+                {!replyingTo && canReply && (
+                  <div className="mt-4 flex gap-3">
+                    <button
+                      className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+                      onClick={() => {
+                        setReplyingTo(r._id);
+                        setReplyText("");
+                      }}>
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                      </svg>
+                      Reply
+                    </button>
+                  </div>
+                )}
+
+                {(r.replies || []).length > 0 && (
+                  <div className="mt-6 ml-4 pl-6 border-l-2 border-indigo-100 dark:border-gray-700 space-y-4">
+                    {r.replies.map((rep, idx) => {
+                      const isRepOrganizer = rep.userId?.role === "organizer";
+                      return (
+                        <div key={idx} className="relative group/reply">
+                          <div className="flex items-center gap-3">
+                            <Link
+                              to={`/profile/${rep.userId?._id || rep.userId}`}
+                              className={`w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold transition-transform hover:scale-105 ${
+                                isRepOrganizer
+                                  ? "bg-blue-600 text-white"
+                                  : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
+                              }`}>
+                              {(rep.userId?.name || "-").toString().charAt(0).toUpperCase()}
+                            </Link>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <Link
+                                  to={`/profile/${rep.userId?._id || rep.userId}`}
+                                  className="text-xs font-bold text-gray-900 dark:text-white hover:text-indigo-600 transition-colors">
+                                  {rep.userId?.name || "User"}
+                                </Link>
+                                {isRepOrganizer && (
+                                  <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-bold uppercase tracking-tighter">
+                                    Organizer
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500">
+                                {new Date(rep.createdAt || Date.now()).toLocaleDateString()}
+                              </span>
                             </div>
-                            <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500">
-                              {new Date(rep.createdAt || Date.now()).toLocaleDateString()}
-                            </span>
+                          </div>
+                          <div className="flex flex-col items-start gap-2">
+                            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 p-3 rounded-xl border border-gray-100 dark:border-gray-700 inline-block">
+                              {rep.comment}
+                            </p>
+                            {canReply && !replyingTo && (
+                              <button
+                                className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 ml-1 opacity-0 group-hover/reply:opacity-100 transition-opacity"
+                                onClick={() => {
+                                  setReplyingTo(r._id);
+                                  setReplyText(`@${rep.userId?.name} `);
+                                }}>
+                                Reply
+                              </button>
+                            )}
                           </div>
                         </div>
-                        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 p-3 rounded-xl border border-gray-100 dark:border-gray-700 inline-block">{rep.comment}</p>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+                      );
+                    })}
+                  </div>
+                )}
 
-              {canReply && (
-                <div className="mt-4">
-                  {replyingTo === r._id ? (
+                {canReply && replyingTo === r._id && (
+                  <div className="mt-4">
                     <div className="space-y-3 bg-gray-50 dark:bg-gray-800 p-4 rounded-2xl border border-gray-200 dark:border-gray-700">
                       <textarea
                         rows={2}
                         value={replyText}
                         onChange={(e) => setReplyText(e.target.value)}
-                        placeholder="Write a professional reply..."
+                        placeholder="Write your reply..."
                         className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white"
+                        autoFocus
                       />
                       <div className="flex gap-2 justify-end">
                         <button
@@ -237,8 +278,7 @@ export default function ReviewWidget({ eventId, canWrite = false, canReply = fal
                           onClick={() => {
                             setReplyingTo(null);
                             setReplyText("");
-                          }}
-                        >
+                          }}>
                           Cancel
                         </button>
                         <button
@@ -258,37 +298,16 @@ export default function ReviewWidget({ eventId, canWrite = false, canReply = fal
                               toast.error(e.response?.data?.message || "Error replying");
                             }
                           }}
-                          disabled={!replyText.trim()}
-                        >
+                          disabled={!replyText.trim()}>
                           Post Reply
                         </button>
                       </div>
                     </div>
-                  ) : (
-                    <button
-                      className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-xs font-bold text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
-                      onClick={() => setReplyingTo(r._id)}
-                    >
-                      Reply to Review
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          )})}
-          {reviews.length > 5 && (
-            <div className="flex justify-center pt-4">
-              <button
-                className="px-6 py-2.5 rounded-xl border-2 border-gray-100 dark:border-gray-800 text-sm font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all"
-                onClick={() => {
-                  setShowAll(true);
-                  setPage(1);
-                }}
-              >
-                View All {reviews.length} Reviews
-              </button>
-            </div>
-          )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
       {canWrite && (

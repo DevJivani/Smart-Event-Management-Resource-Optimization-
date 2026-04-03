@@ -7,11 +7,14 @@ import axiosInstance from "../utils/axios";
 import toast from "react-hot-toast";
 import ReviewWidget from "../components/ReviewWidget.jsx";
 import AverageRatingBadge from "../components/AverageRatingBadge";
+import AdBanner from "../components/AdBanner";
 
 const UserDashboard = () => {
   const { user } = useSelector((state) => state.auth);
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [requests, setRequests] = useState({ received: [], sent: [] });
+  const [requestsLoading, setRequestsLoading] = useState(false);
   const navigate = useNavigate();
   const [filters, setFilters] = useState({
     status: "all",
@@ -48,6 +51,70 @@ const UserDashboard = () => {
     fetch();
   }, [filters.status]);
 
+  useEffect(() => {
+    const fetchRequests = async () => {
+      if (!user) return;
+      try {
+        setRequestsLoading(true);
+        const res = await axiosInstance.get("/api/v1/matchmaker/requests");
+        if (res.data?.success) {
+          setRequests({
+            received: res.data.received || [],
+            sent: res.data.sent || []
+          });
+        }
+      } catch (err) {
+        console.error("Error fetching connection requests:", err);
+      } finally {
+        setRequestsLoading(false);
+      }
+    };
+    fetchRequests();
+  }, [user]);
+
+  const handleUpdateStatus = async (requestId, status) => {
+    try {
+      const res = await axiosInstance.patch("/api/v1/matchmaker/status", {
+        connectionId: requestId,
+        status
+      });
+      if (res.data?.success) {
+        toast.success(`Request ${status}`);
+        if (status === "accepted") {
+          // Find the request to get receiverId and eventId
+          const req = requests.received.find(r => r._id === requestId);
+          if (req) {
+            navigate("/chat", { state: { receiverId: req.senderId._id, eventId: req.eventId._id } });
+          }
+        }
+        setRequests(prev => ({
+          ...prev,
+          received: prev.received.filter(r => r._id !== requestId)
+        }));
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Error updating status");
+    }
+  };
+
+  const handleBlockUser = async (blockUserId) => {
+    if (!window.confirm("Are you sure you want to block this user? You will no longer see each other at events and any existing connections will be removed.")) return;
+    try {
+      const res = await axiosInstance.post("/api/v1/matchmaker/block", { blockUserId });
+      if (res.data?.success) {
+        toast.success("User blocked");
+        // Remove any requests from this user
+        setRequests(prev => ({
+          ...prev,
+          received: prev.received.filter(r => r.senderId._id !== blockUserId),
+          sent: prev.sent.filter(r => r.receiverId._id !== blockUserId)
+        }));
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Error blocking user");
+    }
+  };
+
   if (!user) return <Navigate to="/login" replace />;
   if (user.role !== "user") return <Navigate to="/" replace />;
 
@@ -74,6 +141,7 @@ const UserDashboard = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors duration-300">
       <Navbar />
+      <AdBanner />
       <main className="max-w-7xl mx-auto p-4 sm:p-8">
         <div className="mb-8">
           <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white">Discover Events</h1>
@@ -206,6 +274,73 @@ const UserDashboard = () => {
             )}
           </div>
         </div>
+
+        {/* AI Social Matchmaker Requests */}
+        {requests.received.length > 0 && (
+          <div className="mb-12">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Social Matchmaker Requests</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Attendees want to connect with you!</p>
+              </div>
+              <span className="px-3 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 rounded-full text-xs font-bold border border-indigo-200 dark:border-indigo-800">
+                {requests.received.length} New
+              </span>
+            </div>
+            
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {requests.received.map((req) => (
+                <div key={req._id} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all group">
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className="w-12 h-12 rounded-full overflow-hidden border border-indigo-100 dark:border-indigo-800 bg-gray-50 dark:bg-gray-800 flex-shrink-0">
+                      {req.senderId.profileImage ? (
+                        <img src={req.senderId.profileImage} alt={req.senderId.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-lg font-bold text-indigo-600">
+                          {req.senderId.name.charAt(0)}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between">
+                        <h3 className="font-bold text-gray-900 dark:text-white truncate">{req.senderId.name}</h3>
+                        <button 
+                          onClick={() => handleBlockUser(req.senderId._id)}
+                          className="text-gray-400 hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition-all"
+                          title="Block User"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                          </svg>
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">at {req.eventId.title}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-indigo-50/50 dark:bg-indigo-900/10 rounded-xl p-3 mb-4 border border-indigo-100/50 dark:border-indigo-800/30">
+                    <p className="text-xs text-gray-600 dark:text-gray-300 italic line-clamp-2">"{req.message}"</p>
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => handleUpdateStatus(req._id, "rejected")}
+                      className="flex-1 py-2 text-xs font-bold text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
+                    >
+                      Ignore
+                    </button>
+                    <button 
+                      onClick={() => handleUpdateStatus(req._id, "accepted")}
+                      className="flex-1 py-2 text-xs font-bold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 shadow-sm transition-all"
+                    >
+                      Accept
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Result Message */}
         <div className="mb-8">

@@ -10,6 +10,8 @@ import OrganizerDashboard from './pages/OrganizerDashboard'
 import UserDashboard from './pages/UserDashboard'
 import AdminDashboard from './pages/AdminDashboard'
 import AdminBookingsPage from './pages/AdminBookingsPage.jsx'
+import AdminUsersPage from './pages/AdminUsersPage.jsx'
+import AdminOrganizersPage from './pages/AdminOrganizersPage.jsx'
 import OrganizerBookings from './pages/OrganizerBookings.jsx'
 import BookingPage from './pages/BookingPage'
 import MyEvents from './pages/MyEvents'
@@ -23,6 +25,8 @@ import CompletedEvents from './pages/CompletedEvents.jsx'
 import OrganizerVouchers from './pages/OrganizerVouchers.jsx'
 import ReviewPage from './pages/ReviewPage.jsx'
 import OrganizerMessages from './pages/OrganizerMessages.jsx'
+import UserMessages from './pages/UserMessages.jsx'
+import UserChat from './pages/UserChat.jsx'
 import About from './pages/About'
 import Contact from './pages/Contact'
 import PrivacyPolicy from './pages/PrivacyPolicy'
@@ -30,6 +34,7 @@ import TermsConditions from './pages/TermsConditions'
 import Settings from './pages/Settings'
 import PublicProfile from './pages/PublicProfile'
 import OrganizerScanner from './pages/OrganizerScanner'
+import MemoryBox from './pages/MemoryBox'
 
 const router = createBrowserRouter([
   {
@@ -89,6 +94,14 @@ const router = createBrowserRouter([
     element: <AdminBookingsPage />
   },
   {
+    path: '/admin/users',
+    element: <AdminUsersPage />
+  },
+  {
+    path: '/admin/organizers',
+    element: <AdminOrganizersPage />
+  },
+  {
     path: '/admin/bookings/:id',
     element: <AdminBookingDetails />
   },
@@ -143,6 +156,22 @@ const router = createBrowserRouter([
   {
     path: '/my-events',
     element: <MyEvents />
+  },
+  {
+    path: '/memory-box/:eventId',
+    element: <MemoryBox />
+  },
+  {
+    path: '/messages',
+    element: <UserMessages />
+  },
+  {
+    path: '/chat',
+    element: <UserChat />
+  },
+  {
+    path: '/chat/:chatId',
+    element: <UserChat />
   }
 ])
 

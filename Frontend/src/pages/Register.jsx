@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import axios from "axios";
+import axiosInstance from "../utils/axios";
 import { toast } from "react-hot-toast";
 import { setLoading, setUser } from "../redux/authSlice";
 import { useNavigate, Link } from "react-router-dom";
@@ -129,11 +129,10 @@ const Register = () => {
         form.append("profileImage", profileImage);
       }
 
-      const res = await axios.post(
-        "http://localhost:3000/api/v1/user/register",
+      const res = await axiosInstance.post(
+        "/api/v1/user/register",
         form,
         {
-          withCredentials: true,
           headers: { "Content-Type": "multipart/form-data" }
         }
       );

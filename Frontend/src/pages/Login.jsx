@@ -1,15 +1,25 @@
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import axios from "axios";
+import axiosInstance from "../utils/axios";
 import { toast } from "react-hot-toast";
 import { setLoading, setUser } from "../redux/authSlice";
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 
 const Login = () => {
   const dispatch = useDispatch();
   const { user } = useSelector(state => state.auth);
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLocalLoading] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("blocked") === "true") {
+      toast.error("Your account has been blocked by the admin. Please contact support.");
+      // Clean up the URL
+      navigate("/login", { replace: true });
+    }
+  }, [location, navigate]);
 
   const [formData, setFormData] = useState({
     email: "",
@@ -31,10 +41,9 @@ const Login = () => {
     setLocalLoading(true);
 
     try {
-      const res = await axios.post(
-        "http://localhost:3000/api/v1/user/verify-2fa",
-        { email: emailFor2FA, otp },
-        { withCredentials: true }
+      const res = await axiosInstance.post(
+        "/api/v1/user/verify-2fa",
+        { email: emailFor2FA, otp }
       );
 
       if (res.data.success) {
@@ -58,10 +67,9 @@ const Login = () => {
      setLocalLoading(true);
  
      try {
-       const res = await axios.post(
-         "http://localhost:3000/api/v1/user/login",
-         formData,
-         { withCredentials: true }
+       const res = await axiosInstance.post(
+         "/api/v1/user/login",
+         formData
        );
  
        if (res.data.success) {

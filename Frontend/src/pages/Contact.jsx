@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import toast from 'react-hot-toast'
+import axiosInstance from '../utils/axios'
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -12,15 +13,24 @@ const Contact = () => {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setIsSubmitting(true)
-    // Simulate API call
-    setTimeout(() => {
-      toast.success('Message sent successfully! We will get back to you soon.')
-      setFormData({ name: '', email: '', subject: '', message: '' })
+    try {
+      const res = await axiosInstance.post('/api/v1/user/contact', formData)
+      if (res.data.success) {
+        toast.success(res.data.message)
+        setFormData({ name: '', email: '', subject: '', message: '' })
+      } else {
+        toast.error(res.data.message || 'Failed to send message')
+      }
+    } catch (error) {
+      console.error("Contact Error:", error)
+      const errorMsg = error.response?.data?.message || error.message || 'Error sending message'
+      toast.error(errorMsg)
+    } finally {
       setIsSubmitting(false)
-    }, 1000)
+    }
   }
 
   const handleChange = (e) => {
@@ -50,7 +60,7 @@ const Contact = () => {
               </div>
               <div>
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">Email Us</h3>
-                <p className="text-gray-600 dark:text-gray-400">support@eventhub.com</p>
+                <p className="text-gray-600 dark:text-gray-400">djjivanidjpatel@gmail.com</p>
                 <p className="text-xs text-purple-600 dark:text-purple-400 font-medium mt-1">Response within 24 hours</p>
               </div>
             </div>
@@ -77,7 +87,7 @@ const Contact = () => {
               </div>
               <div>
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">Call Us</h3>
-                <p className="text-gray-600 dark:text-gray-400">+1 (555) 123-4567</p>
+                <p className="text-gray-600 dark:text-gray-400">+91 9586605019</p>
                 <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mt-1">Mon-Fri, 9am - 6pm EST</p>
               </div>
             </div>

@@ -74,7 +74,7 @@ const PublicProfile = () => {
                 profile.name?.charAt(0).toUpperCase()
               )}
             </div>
-            <div className="text-center md:text-left">
+            <div className="text-center md:text-left flex-1">
               <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-2">
                 <h1 className="text-4xl sm:text-5xl font-bold">{profile.name}</h1>
                 <span className={`px-3 py-1 text-xs font-bold rounded-full uppercase tracking-wider ${
@@ -89,6 +89,20 @@ const PublicProfile = () => {
                 Member since {new Date(profile.memberSince).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
               </p>
             </div>
+
+            {/* Organizer Stats Badge */}
+            {profile.role === 'organizer' && profile.stats && (
+              <div className="flex gap-4 sm:gap-6 mt-8 md:mt-0">
+                <div className="text-center bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/10 min-w-[100px]">
+                  <p className="text-2xl font-bold text-white">{profile.stats.avgRating || '0'}</p>
+                  <p className="text-[10px] uppercase font-bold text-white/60 tracking-widest mt-1">Avg Rating</p>
+                </div>
+                <div className="text-center bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/10 min-w-[100px]">
+                  <p className="text-2xl font-bold text-white">{profile.stats.totalEvents || '0'}</p>
+                  <p className="text-[10px] uppercase font-bold text-white/60 tracking-widest mt-1">Total Events</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -106,7 +120,74 @@ const PublicProfile = () => {
               The user has chosen to keep their event activity and reviews private.
             </p>
           </div>
+        ) : profile.role === 'organizer' ? (
+          /* Organizer Specific Layout */
+          <div className="space-y-12">
+            <section className="space-y-8">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                    <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                    Hosted Events
+                  </h2>
+                  <p className="text-gray-500 dark:text-gray-400 mt-2">Explore events organized by {profile.name}</p>
+                </div>
+              </div>
+
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {profile.hostedEvents?.length > 0 ? (
+                  profile.hostedEvents.map((event) => (
+                    <Link 
+                      key={event._id} 
+                      to={`/event/${event._id}`}
+                      className="group bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl overflow-hidden hover:shadow-xl transition-all duration-500 flex flex-col"
+                    >
+                      <div className="aspect-video relative overflow-hidden bg-gray-100 dark:bg-gray-800">
+                        {event.bannerImage ? (
+                          <img src={event.bannerImage} alt={event.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/30 dark:to-purple-900/30" />
+                        )}
+                        <div className="absolute top-4 right-4">
+                          <StatusBadge status={event.status} />
+                        </div>
+                      </div>
+                      <div className="p-6 flex-1 flex flex-col">
+                        <div className="flex items-center gap-2 mb-3">
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-1 rounded-lg">
+                            {event.categoryId?.name}
+                          </span>
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-indigo-600 transition-colors line-clamp-1">
+                          {event.title}
+                        </h3>
+                        <div className="mt-auto pt-4 flex items-center justify-between border-t border-gray-50 dark:border-gray-800">
+                          <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            <span className="text-xs font-medium">{event.city || event.venue}</span>
+                          </div>
+                          <p className="text-xs font-bold text-gray-900 dark:text-white">
+                            {event.isPaid ? `$${event.price}` : 'Free'}
+                          </p>
+                        </div>
+                      </div>
+                    </Link>
+                  ))
+                ) : (
+                  <div className="col-span-full py-20 text-center bg-white dark:bg-gray-900 rounded-3xl border border-dashed border-gray-200 dark:border-gray-700">
+                    <p className="text-gray-500 dark:text-gray-400">No events hosted yet.</p>
+                  </div>
+                )}
+              </div>
+            </section>
+          </div>
         ) : (
+          /* Regular User Layout */
           <div className="grid lg:grid-cols-2 gap-12">
             {/* Attended Events Section */}
             <section className="space-y-6">

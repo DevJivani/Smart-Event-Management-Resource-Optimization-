@@ -27,6 +27,7 @@ export default function OrganizerEventCreate() {
     price: "0",
   });
   const [bannerPreview, setBannerPreview] = useState("");
+  const [showGuide, setShowGuide] = useState(false);
   const bannerFileRef = useRef(null);
 
   useEffect(() => {
@@ -54,6 +55,7 @@ export default function OrganizerEventCreate() {
     if (form.isPaid) {
       const price = Number(String(form.price || "0").replace(/,/g, "").replace(/[^\d.]/g, ""));
       if (!Number.isFinite(price) || price <= 0) errs.price = "Price must be greater than 0 for paid events";
+      if (!user?.upiId) errs.upiId = "You must set your UPI ID in your profile to create a paid event.";
     }
     try {
       const sd = new Date(form.startDate);
@@ -78,7 +80,11 @@ export default function OrganizerEventCreate() {
       return;
     }
     if (!isValid) {
-      toast.error("Fix validation errors before creating");
+      if (errors.upiId) {
+        toast.error(errors.upiId);
+      } else {
+        toast.error("Fix validation errors before creating");
+      }
       return;
     }
     try {
@@ -396,7 +402,10 @@ export default function OrganizerEventCreate() {
               <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl p-6 text-white shadow-xl">
                 <h4 className="font-bold mb-2">Need Help?</h4>
                 <p className="text-indigo-100 text-xs leading-relaxed mb-4">Check our organizer guide for tips on how to create a successful event.</p>
-                <button className="w-full py-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl text-xs font-bold transition-all border border-white/20">
+                <button 
+                  onClick={() => setShowGuide(true)}
+                  className="w-full py-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl text-xs font-bold transition-all border border-white/20"
+                >
                   Read Organizer Guide
                 </button>
               </div>
@@ -404,6 +413,114 @@ export default function OrganizerEventCreate() {
           </aside>
         </div>
       </main>
+
+      {/* Organizer Guide Modal */}
+      {showGuide && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-all duration-300">
+          <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col transform transition-all border border-gray-100 dark:border-gray-800 animate-in fade-in zoom-in duration-300">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-10 text-white relative flex-shrink-0 overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-3xl"></div>
+              <div className="absolute bottom-0 left-0 w-24 h-24 bg-purple-400/20 rounded-full -ml-12 -mb-12 blur-2xl"></div>
+              
+              <button 
+                onClick={() => setShowGuide(false)}
+                className="absolute top-6 right-6 p-2.5 bg-white/10 hover:bg-white/20 rounded-full transition-all border border-white/20 z-10"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+
+              <div className="flex items-center gap-5">
+                <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-lg border border-white/30">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-3xl font-extrabold tracking-tight">Organizer's Guide</h2>
+                  <p className="text-indigo-100 text-sm font-medium mt-1">Master the art of event creation</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-8 sm:p-10 space-y-10 overflow-y-auto scrollbar-hide flex-1">
+              <div className="grid gap-10">
+                <div className="flex gap-6">
+                  <div className="flex-shrink-0 w-12 h-12 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-2xl flex items-center justify-center font-black text-lg shadow-sm">1</div>
+                  <div className="space-y-2">
+                    <h4 className="text-lg font-bold text-gray-900 dark:text-white">Captivate with Content</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                      Use a <span className="text-indigo-600 dark:text-indigo-400 font-bold underline decoration-2 underline-offset-4">catchy title</span> and a detailed description. 
+                      Explain exactly what attendees will experience, learn, or gain.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-6">
+                  <div className="flex-shrink-0 w-12 h-12 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-2xl flex items-center justify-center font-black text-lg shadow-sm">2</div>
+                  <div className="space-y-2">
+                    <h4 className="text-lg font-bold text-gray-900 dark:text-white">Visual Storytelling</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                      Upload a high-quality banner image. Events with vibrant visuals get <span className="text-purple-600 dark:text-purple-400 font-bold italic">70% more engagement</span>. 
+                      Recommended size: 1200x630px.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-6">
+                  <div className="flex-shrink-0 w-12 h-12 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center font-black text-lg shadow-sm">3</div>
+                  <div className="space-y-2">
+                    <h4 className="text-lg font-bold text-gray-900 dark:text-white">UPI & Payment Logic</h4>
+                    <div className="p-5 bg-emerald-50/50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800/50 rounded-2xl space-y-4">
+                      <div className="flex gap-3">
+                        <div className="w-5 h-5 bg-emerald-500 rounded-full flex-shrink-0 flex items-center justify-center mt-0.5">
+                          <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>
+                        </div>
+                        <p className="text-xs font-medium text-emerald-800 dark:text-emerald-300">Set your UPI ID in your profile before creating a paid event.</p>
+                      </div>
+                      <div className="flex gap-3">
+                        <div className="w-5 h-5 bg-emerald-500 rounded-full flex-shrink-0 flex items-center justify-center mt-0.5">
+                          <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>
+                        </div>
+                        <p className="text-xs font-medium text-emerald-800 dark:text-emerald-300">A unique QR code is generated for your UPI ID during booking.</p>
+                      </div>
+                      <div className="flex gap-3">
+                        <div className="w-5 h-5 bg-emerald-500 rounded-full flex-shrink-0 flex items-center justify-center mt-0.5">
+                          <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>
+                        </div>
+                        <p className="text-xs font-medium text-emerald-800 dark:text-emerald-300 underline decoration-emerald-500/30">You must manually verify the UTR/Transaction ID in your dashboard.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-6 pb-4">
+                  <div className="flex-shrink-0 w-12 h-12 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-2xl flex items-center justify-center font-black text-lg shadow-sm">4</div>
+                  <div className="space-y-2">
+                    <h4 className="text-lg font-bold text-gray-900 dark:text-white">Review & Publish</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                      Check your live preview on the right. Once you hit publish, our admins will review and approve your event within 24 hours.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-8 border-t dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 flex-shrink-0">
+              <button 
+                onClick={() => setShowGuide(false)}
+                className="w-full py-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-black rounded-2xl shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 uppercase tracking-widest text-xs"
+              >
+                Got it, let's create!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

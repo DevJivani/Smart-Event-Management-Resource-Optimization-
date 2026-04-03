@@ -9,7 +9,7 @@ import QRCode from "qrcode";
 const formatPrice = (n) => Number(n || 0).toFixed(2);
 
 const methodFields = {
-  UPI: [{ name: "upiId", label: "UPI ID", type: "text", placeholder: "name@bank" }],
+  UPI: [], // No input needed, we generate QR for organizer
   Card: [
     { name: "cardNumber", label: "Card Number", type: "text", placeholder: "1234 5678 9012 3456", maxLength: 19 },
     { name: "nameOnCard", label: "Name on Card", type: "text", placeholder: "Full Name" },
@@ -45,7 +45,10 @@ const BookingPage = () => {
   const [discount, setDiscount] = useState(0);
   const [appliedVoucher, setAppliedVoucher] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [bookingInfo, setBookingInfo] = useState(null);
   const [qrDataUrl, setQrDataUrl] = useState("");
+  const [transactionId, setTransactionId] = useState("");
+  const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -74,6 +77,32 @@ const BookingPage = () => {
     }
   }, [user, navigate]);
 
+  useEffect(() => {
+    const generateQrCode = async () => {
+      if (bookingInfo && bookingInfo.totalAmount) {
+        // Use the organizer's UPI ID returned from the backend
+        const pa = (bookingInfo.organizerUpiId || "").trim();
+        const pn = bookingInfo.organizerName || "Organizer";
+        const am = Number(bookingInfo.totalAmount).toFixed(2);
+        const tn = `Booking-${bookingInfo._id}`;
+        const upiUrl = `upi://pay?pa=${pa}&pn=${pn}&am=${am}&tn=${tn}`;
+        
+        try {
+          const dataUrl = await QRCode.toDataURL(upiUrl, {
+            margin: 1,
+            scale: 6,
+            color: { dark: "#000000", light: "#ffffff" }
+          });
+          setQrDataUrl(dataUrl);
+        } catch (err) {
+          console.error("Failed to generate QR code", err);
+          setQrDataUrl("");
+        }
+      }
+    };
+    generateQrCode();
+  }, [bookingInfo]);
+
   const maxQty = useMemo(() => Math.max(1, Number(event?.availableSeats || 1)), [event]);
   const unitPrice = useMemo(() => Number(event?.price || 0), [event]);
   const subtotal = useMemo(() => unitPrice * (quantity || 1), [unitPrice, quantity]);
@@ -93,39 +122,6 @@ const BookingPage = () => {
     (details.attendeeEmail || "").includes("@") &&
     (details.attendeePhone || "").trim().length === 10 &&
     details.acceptTerms === true;
-
-  useEffect(() => {
-    const buildUpiUrl = () => {
-      const pa = encodeURIComponent((details.upiId || "").trim());
-      const pn = encodeURIComponent((details.attendeeName || "").trim() || "Attendee");
-      const am = encodeURIComponent(Number(total || 0).toFixed(2));
-      const tn = encodeURIComponent(`Booking: ${event?.title || "Event"}`);
-      if (!pa) return "";
-      return `upi://pay?pa=${pa}&pn=${pn}&am=${am}&tn=${tn}`;
-    };
-    const regenerate = async () => {
-      if (paymentMethod !== "UPI") {
-        setQrDataUrl("");
-        return;
-      }
-      const url = buildUpiUrl();
-      if (!url) {
-        setQrDataUrl("");
-        return;
-      }
-      try {
-        const dataUrl = await QRCode.toDataURL(url, {
-          margin: 1,
-          scale: 6,
-          color: { dark: "#000000", light: "#ffffff" }
-        });
-        setQrDataUrl(dataUrl);
-      } catch {
-        setQrDataUrl("");
-      }
-    };
-    regenerate();
-  }, [paymentMethod, details.upiId, details.attendeeName, total, event?.title]);
 
   const handleDetailChange = (name, value) => {
     if (name === "attendeePhone") {
@@ -160,23 +156,77 @@ const BookingPage = () => {
     }
   };
 
-  const handleBook = async () => {
+  const pollPaymentStatus = (bookingId) => {
+    const interval = setInterval(async () => {
+      try {
+        const res = await axiosInstance.get(`/api/v1/booking/payment-status/${bookingId}`);
+        if (res.data.success && res.data.paymentStatus === "paid") {
+          clearInterval(interval);
+          toast.success("Payment confirmed! Your booking is complete.");
+          const invoiceUrl = `${axiosInstance.defaults.baseURL}/api/v1/booking/${bookingId}/invoice`;
+          window.open(invoiceUrl, "_blank");
+          navigate("/dashboard");
+        }
+      } catch (error) {
+        console.error("Error polling for payment status:", error);
+      }
+    }, 3000);
+
+    setTimeout(() => {
+      clearInterval(interval);
+    }, 300000); // 5 minutes timeout
+  };
+
+  const handleConfirmPayment = async () => {
+    if (!bookingInfo?._id) return;
     try {
-      if (!canBook || !attendeeValid) return;
-      setSubmitting(true);
+      setConfirming(true);
+      const res = await axiosInstance.post(`/api/v1/booking/confirm-payment/${bookingInfo._id}`, {
+        transactionId
+      });
+      if (res.data.success) {
+        toast.success("Payment submitted for verification!");
+        // Redirect to a pending state or dashboard
+        setStep(5); // New step for submission success
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to submit payment");
+    } finally {
+      setConfirming(false);
+    }
+  };
+
+  const handleBook = async () => {
+    if (!canBook || !attendeeValid) return;
+    setSubmitting(true);
+    try {
       const payload = {
         eventId,
         quantity,
         paymentMethod,
         paymentDetails: details,
-        voucherCode: appliedVoucher
+        voucherCode: appliedVoucher,
       };
       const resp = await axiosInstance.post("/api/v1/booking/create", payload);
+
       if (resp.data.success) {
-        toast.success("Booking confirmed");
-        const invoiceUrl = `${axiosInstance.defaults.baseURL}/api/v1/booking/${resp.data.booking._id}/invoice`;
-        window.open(invoiceUrl, "_blank");
-        navigate("/dashboard");
+        if (paymentMethod === "UPI" && (resp.data.booking.paymentStatus === "pending" || resp.data.paymentStatus === "pending")) {
+          // Merge booking data with organizer details for the QR code
+          const combinedBookingInfo = {
+            ...(resp.data.booking || {}),
+            organizerUpiId: resp.data.organizerUpiId,
+            organizerName: resp.data.organizerName
+          };
+          setBookingInfo(combinedBookingInfo);
+          setStep(4);
+          pollPaymentStatus(combinedBookingInfo._id || resp.data.bookingId);
+        } else {
+          const booking = resp.data.booking || resp.data;
+          toast.success("Booking confirmed");
+          const invoiceUrl = `${axiosInstance.defaults.baseURL}/api/v1/booking/${booking._id}/invoice`;
+          window.open(invoiceUrl, "_blank");
+          navigate("/dashboard");
+        }
       } else {
         toast.error(resp.data.message || "Booking failed");
       }
@@ -257,6 +307,7 @@ const BookingPage = () => {
                 <div className={`h-2 flex-1 rounded-full transition-all duration-300 ${step >= 1 ? "bg-indigo-600" : "bg-gray-100 dark:bg-gray-800"}`} />
                 <div className={`h-2 flex-1 rounded-full transition-all duration-300 ${step >= 2 ? "bg-indigo-600" : "bg-gray-100 dark:bg-gray-800"}`} />
                 <div className={`h-2 flex-1 rounded-full transition-all duration-300 ${step >= 3 ? "bg-indigo-600" : "bg-gray-100 dark:bg-gray-800"}`} />
+                <div className={`h-2 flex-1 rounded-full transition-all duration-300 ${step >= 4 ? "bg-indigo-600" : "bg-gray-100 dark:bg-gray-800"}`} />
               </div>
               {step === 1 && (
                 <div className="space-y-6">
@@ -348,8 +399,7 @@ const BookingPage = () => {
                       className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-all"
                       placeholder="Any special requests or notes?"
                     />
-                  </div>
-                  <label className="flex items-start gap-3 text-sm text-gray-600 dark:text-gray-400 cursor-pointer group">
+                  </div>                  <label className="flex items-start gap-3 text-sm text-gray-600 dark:text-gray-400 cursor-pointer group">
                     <input
                       type="checkbox"
                       checked={details.acceptTerms}
@@ -436,36 +486,14 @@ const BookingPage = () => {
                     </div>
                   </div>
                   {paymentMethod === "UPI" && (
-                    <div className="p-6 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-2xl">
-                      <div className="flex flex-col sm:flex-row items-center gap-6">
-                        <div className="bg-white p-2 rounded-xl shadow-inner shrink-0">
-                          {qrDataUrl ? (
-                            <img src={qrDataUrl} alt="UPI QR" className="w-32 h-32 rounded-lg" />
-                          ) : (
-                            <div className="w-32 h-32 bg-gray-100 rounded-lg flex items-center justify-center text-gray-300">
-                              <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" /></svg>
-                            </div>
-                          )}
+                    <div className="p-6 bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-900/30 rounded-2xl">
+                      <div className="flex items-center gap-4">
+                        <div className="bg-indigo-600 p-3 rounded-xl text-white">
+                          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg>
                         </div>
-                        <div className="flex-1 text-center sm:text-left">
-                          <p className="font-bold text-gray-900 dark:text-white mb-1">Scan to Pay</p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Open any UPI app to scan and pay the total amount.</p>
-                          <div className="flex items-center justify-center sm:justify-start gap-2">
-                            <span className="text-2xl font-black text-gray-900 dark:text-white">₹{formatPrice(total)}</span>
-                            {details.upiId && (
-                              <button
-                                type="button"
-                                className="ml-2 px-3 py-1.5 text-xs font-bold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-all shadow-sm"
-                                onClick={() => {
-                                  const link = `upi://pay?pa=${details.upiId}&pn=${details.attendeeName || "Attendee"}&am=${Number(total || 0).toFixed(2)}&tn=${encodeURIComponent(`Booking: ${event?.title || "Event"}`)}`;
-                                  navigator.clipboard?.writeText(link);
-                                  toast.success("UPI link copied");
-                                }}
-                              >
-                                Copy Link
-                              </button>
-                            )}
-                          </div>
+                        <div>
+                          <p className="font-bold text-gray-900 dark:text-white">Real-time QR Generation</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">A unique UPI QR code will be generated for the organizer's account after you confirm the booking.</p>
                         </div>
                       </div>
                     </div>
@@ -528,6 +556,64 @@ const BookingPage = () => {
                   </div>
                 </div>
               )}
+              {step === 4 && bookingInfo && (
+                 <div className="text-center space-y-6">
+                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Scan to Complete Payment</h2>
+                   <p className="text-gray-600 dark:text-gray-400">Scan the QR code with your UPI app to complete the booking.</p>
+                   {qrDataUrl ? (
+                     <img src={qrDataUrl} alt="UPI QR Code" className="mx-auto w-64 h-64" />
+                   ) : (
+                     <div className="animate-pulse w-64 h-64 bg-gray-200 dark:bg-gray-700 rounded-lg mx-auto"></div>
+                   )}
+                   <p className="text-lg font-bold text-gray-900 dark:text-white">Amount: ₹{formatPrice(bookingInfo.totalAmount)}</p>
+                   
+                   <div className="max-w-xs mx-auto space-y-4 pt-4">
+                     <div>
+                       <label className="block text-xs font-bold text-gray-500 uppercase text-left mb-1">
+                         Transaction ID / UTR <span className="text-red-500">*</span>
+                       </label>
+                       <input 
+                         type="text"
+                         value={transactionId}
+                         onChange={(e) => setTransactionId(e.target.value)}
+                         placeholder="Enter 12-digit UTR number"
+                         className="w-full px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white dark:bg-gray-800 text-sm"
+                         required
+                       />
+                       <p className="text-[10px] text-gray-400 mt-1 text-left italic">Compulsory for payment verification</p>
+                     </div>
+                     <button
+                       onClick={handleConfirmPayment}
+                       disabled={confirming || !transactionId.trim()}
+                       className="w-full py-3 bg-emerald-600 text-white font-bold rounded-xl shadow-lg hover:bg-emerald-700 transition-all disabled:opacity-50 disabled:grayscale"
+                     >
+                       {confirming ? "Verifying..." : "I have Paid"}
+                     </button>
+                   </div>
+
+                   <div className="flex items-center justify-center gap-2 pt-4">
+                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-600"></div>
+                     <p className="text-gray-500 dark:text-gray-400">Waiting for payment confirmation...</p>
+                   </div>
+                 </div>
+               )}
+               {step === 5 && (
+                 <div className="text-center space-y-6 py-10">
+                   <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
+                     <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
+                   </div>
+                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Payment Submitted!</h2>
+                   <p className="text-gray-600 dark:text-gray-400 max-w-sm mx-auto">
+                     Your payment is now being verified by the organizer. You will receive an email once your booking is confirmed.
+                   </p>
+                   <button 
+                     onClick={() => navigate("/dashboard")}
+                     className="px-8 py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-lg hover:bg-indigo-700 transition-all"
+                   >
+                     Go to Dashboard
+                   </button>
+                 </div>
+               )}
               {step === 3 && (
                 <div className="space-y-8">
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Review & Confirm</h2>

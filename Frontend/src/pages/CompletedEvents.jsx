@@ -114,13 +114,19 @@ export default function CompletedEvents() {
                     <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Event Concluded</span>
                   </div>
 
-                  <div className="mt-6 pt-6 border-t dark:border-gray-800 flex items-center justify-between">
+                  <div className="mt-6 pt-6 border-t dark:border-gray-800 flex items-center gap-3">
                     <button
                       className="flex-1 px-4 py-3 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition-colors text-sm flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20"
                       onClick={() => navigate(`/event/${e._id}`)}
                     >
-                      View Details
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                      Details
+                    </button>
+                    <button
+                      className="flex-1 px-4 py-3 rounded-xl bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 font-bold hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors text-sm flex items-center justify-center gap-2"
+                      onClick={() => navigate(`/memory-box/${e._id}`)}
+                    >
+                      Memories
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                     </button>
                   </div>
                 </div>

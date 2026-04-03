@@ -9,6 +9,7 @@ const OrganizerScanner = () => {
   const [scanResult, setScanResult] = useState(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [error, setError] = useState(null);
+  const [attendanceStats, setAttendanceStats] = useState({ total: 0, checkedIn: 0, percentage: 0 });
 
   useEffect(() => {
     const style = document.createElement('style');
@@ -91,6 +92,9 @@ const OrganizerScanner = () => {
 
         if (res.data.success) {
           setScanResult(res.data.booking);
+          if (res.data.attendanceStats) {
+            setAttendanceStats(res.data.attendanceStats);
+          }
           toast.success(res.data.message);
         }
       } catch (err) {
@@ -100,6 +104,9 @@ const OrganizerScanner = () => {
         
         if (err.response?.data?.booking) {
             setScanResult(err.response.data.booking);
+        }
+        if (err.response?.data?.attendanceStats) {
+            setAttendanceStats(err.response.data.attendanceStats);
         }
       } finally {
         setIsVerifying(false);
@@ -279,7 +286,7 @@ const OrganizerScanner = () => {
                   <p className="text-2xl font-black tracking-tight">Active Scanning</p>
                 </div>
                 <div className="text-right">
-                  <span className="text-3xl font-black block leading-none">0%</span>
+                  <span className="text-3xl font-black block leading-none">{attendanceStats.percentage}%</span>
                   <span className="text-[10px] font-bold text-indigo-200 uppercase tracking-widest">Attendance</span>
                 </div>
               </div>

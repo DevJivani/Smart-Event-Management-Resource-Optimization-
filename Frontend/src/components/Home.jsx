@@ -4,11 +4,37 @@ import { Link } from 'react-router-dom'
 import axiosInstance from '../utils/axios'
 import Navbar from './Navbar'
 import Footer from './Footer'
+import AdBanner from './AdBanner'
 
 function Home() {
   const { user } = useSelector((state) => state.auth)
   const [events, setEvents] = useState([])
+  const [recommendedEvents, setRecommendedEvents] = useState([])
   const [loading, setLoading] = useState(false)
+  const [recLoading, setRecLoading] = useState(false)
+  const [smartQuery, setSmartQuery] = useState('')
+  const [smartResults, setSmartResults] = useState(null)
+  const [isSmartSearching, setIsSmartSearching] = useState(false)
+
+  const handleSmartSearch = async (e) => {
+    e.preventDefault()
+    if (!smartQuery.trim()) return
+    
+    try {
+      setIsSmartSearching(true)
+      const res = await axiosInstance.get(`/api/v1/event/smart-search?query=${encodeURIComponent(smartQuery)}`)
+      if (res.data?.success) {
+        setSmartResults({
+          events: res.data.events,
+          analysis: res.data.analysis
+        })
+      }
+    } catch (err) {
+      console.error("Smart search error:", err)
+    } finally {
+      setIsSmartSearching(false)
+    }
+  }
   const HERO_INTERVAL_MS = 5000
   const OVERLAY_OPACITY = 0.55
   const heroImages = useMemo(() => ([
@@ -39,6 +65,23 @@ function Home() {
   }, [heroIndex])
 
   useEffect(() => {
+    const fetchRecommendations = async () => {
+      try {
+        setRecLoading(true)
+        const res = await axiosInstance.get('/api/v1/event/recommendations')
+        if (res.data?.success) {
+          setRecommendedEvents(res.data.events || [])
+        }
+      } catch (err) {
+        console.error("Error fetching recommendations:", err)
+      } finally {
+        setRecLoading(false)
+      }
+    }
+    fetchRecommendations()
+  }, [user])
+
+  useEffect(() => {
     const fetchLatest = async () => {
       try {
         setLoading(true)
@@ -63,6 +106,7 @@ function Home() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors duration-300">
       <Navbar />
+      <AdBanner />
       
       {/* Hero Section */}
       <section className="relative overflow-hidden">
@@ -105,33 +149,192 @@ function Home() {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <>
-                <Link
-                  to="/dashboard"
-                  className="px-8 py-4 bg-white text-purple-600 font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
+              <Link 
+                to="/events" 
+                className="px-10 py-4 bg-purple-600 hover:bg-purple-700 text-white rounded-2xl font-black shadow-2xl shadow-purple-500/40 transform hover:-translate-y-1 transition-all duration-300"
+              >
+                Explore All Events
+              </Link>
+            </div>
+
+            {/* Smart Search Bar */}
+            <div className="mt-12 max-w-2xl mx-auto w-full group">
+              <form onSubmit={handleSmartSearch} className="relative">
+                <input 
+                  type="text" 
+                  value={smartQuery}
+                  onChange={(e) => setSmartQuery(e.target.value)}
+                  placeholder="e.g. 'I want a music event under ₹1000 this weekend'"
+                  className="w-full px-8 py-6 bg-white/10 backdrop-blur-2xl border-2 border-white/20 rounded-[2rem] text-white placeholder:text-white/50 focus:outline-none focus:border-purple-400/50 focus:bg-white/20 transition-all duration-500 text-lg shadow-2xl"
+                />
+                <button 
+                  type="submit"
+                  disabled={isSmartSearching}
+                  className="absolute right-3 top-3 bottom-3 px-8 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white rounded-[1.5rem] font-bold shadow-xl flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50"
                 >
-                  Browse Events
-                </Link>
-                {user ? (
-                  <Link
-                    to="/profile"
-                    className="px-8 py-4 bg-white/10 backdrop-blur-sm text-white font-semibold rounded-xl border border-white/20 hover:bg-white/20 transition-all duration-200"
+                  {isSmartSearching ? (
+                    <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                      <span>Smart Find</span>
+                    </>
+                  )}
+                </button>
+              </form>
+              <div className="mt-4 flex flex-wrap justify-center gap-2">
+                <span className="text-white/40 text-[10px] font-bold uppercase tracking-widest mr-2">Try:</span>
+                {["Music under 500", "Workshops tonight", "Events in Mumbai"].map(hint => (
+                  <button 
+                    key={hint}
+                    onClick={() => { setSmartQuery(hint); handleSmartSearch({ preventDefault: () => {} }) }}
+                    className="text-white/60 hover:text-white text-xs font-medium bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-full border border-white/10 transition-colors"
                   >
-                    My Profile
-                  </Link>
-                ) : (
-                  <Link
-                    to="/login"
-                    className="px-8 py-4 bg-white/10 backdrop-blur-sm text-white font-semibold rounded-xl border border-white/20 hover:bg-white/20 transition-all duration-200"
-                  >
-                    Sign In to Book
-                  </Link>
-                )}
-              </>
+                    {hint}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
       </section>
+
+      {/* Smart Search Results */}
+      {smartResults && (
+        <section className="py-16 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 animate-in fade-in slide-in-from-top-4 duration-700">
+          <div className="max-w-7xl mx-auto px-4">
+            <div className="flex flex-col mb-10 text-center">
+              <div className="inline-flex items-center gap-2 bg-purple-100 dark:bg-purple-900/30 px-4 py-2 rounded-full mx-auto mb-4">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-500"></span>
+                </span>
+                <span className="text-purple-600 dark:text-purple-400 text-[10px] font-black uppercase tracking-widest">AI Intelligence</span>
+              </div>
+              <h2 className="text-3xl font-black text-gray-900 dark:text-white">{smartResults.analysis}</h2>
+              <button 
+                onClick={() => setSmartResults(null)}
+                className="mt-4 text-gray-400 hover:text-red-500 text-sm font-bold uppercase tracking-widest flex items-center gap-2 mx-auto"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Clear Results
+              </button>
+            </div>
+
+            {smartResults.events.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                {smartResults.events.map((event) => (
+                  <div 
+                    key={event._id} 
+                    onClick={() => window.location.href = `/event/${event._id}`}
+                    className="group bg-gray-50 dark:bg-gray-800/50 rounded-[2.5rem] p-4 border border-gray-100 dark:border-gray-700 hover:border-purple-500/30 transition-all duration-500 hover:shadow-2xl flex flex-col cursor-pointer"
+                  >
+                    {/* ... similar card UI as recommended ... */}
+                    <div className="relative h-48 w-full rounded-[2rem] overflow-hidden mb-4">
+                      {event.bannerImage ? (
+                        <img src={event.bannerImage} alt={event.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
+                      ) : (
+                        <div className="w-full h-full bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center">
+                          <svg className="w-10 h-10 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                    <h3 className="text-lg font-black text-gray-900 dark:text-white mb-2 line-clamp-2">{event.title}</h3>
+                    <div className="mt-auto flex items-center justify-between text-[10px] font-bold text-gray-500">
+                      <span>{event.city || "Venue"}</span>
+                      <span className="text-purple-600 font-black">₹{event.price}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-20 bg-gray-50 dark:bg-gray-800/50 rounded-[3rem] border-2 border-dashed border-gray-200 dark:border-gray-700">
+                <p className="text-gray-500 dark:text-gray-400 text-lg">I couldn't find any events matching that specific request. Try something broader!</p>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* Recommended for You Section */}
+      {recommendedEvents.length > 0 && (
+        <section className="py-16 bg-gradient-to-b from-indigo-50/50 to-transparent dark:from-indigo-900/10 dark:to-transparent">
+          <div className="max-w-7xl mx-auto px-4">
+            <div className="flex flex-col mb-10">
+              <div className="flex items-center gap-3 mb-2">
+                <span className="px-3 py-1 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 text-[10px] font-black uppercase tracking-[0.2em] rounded-full">
+                  Personalized
+                </span>
+                <div className="h-px flex-1 bg-indigo-100 dark:bg-indigo-900/20"></div>
+              </div>
+              <h2 className="text-4xl font-black text-gray-900 dark:text-white tracking-tight">Recommended for You</h2>
+              <p className="text-gray-500 dark:text-gray-400 mt-2 text-lg">Based on your interests and past bookings.</p>
+            </div>
+
+            <div className="flex overflow-x-auto pb-8 gap-6 custom-scrollbar scroll-smooth snap-x">
+              {recommendedEvents.map((event) => (
+                <div 
+                  key={event._id} 
+                  onClick={() => window.location.href = `/event/${event._id}`}
+                  className="flex-shrink-0 w-[320px] snap-start group relative bg-white dark:bg-gray-900 rounded-[2rem] p-3 border border-gray-100 dark:border-gray-800 hover:border-indigo-500/30 transition-all duration-500 hover:shadow-[0_20px_50px_rgba(79,70,229,0.1)] dark:hover:shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col cursor-pointer overflow-hidden"
+                >
+                  {/* Image Container */}
+                  <div className="relative h-48 w-full rounded-[1.5rem] overflow-hidden">
+                    {event.bannerImage ? (
+                      <img 
+                        src={event.bannerImage} 
+                        alt={event.title} 
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000 ease-out" 
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-indigo-500/10 to-purple-500/10 flex items-center justify-center">
+                        <svg className="h-10 w-10 text-indigo-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                    )}
+                    <div className="absolute top-3 right-3">
+                      <div className="px-3 py-1.5 bg-white/90 dark:bg-gray-950/90 backdrop-blur-xl rounded-xl border border-white/20 shadow-xl font-black text-[10px] text-indigo-600 dark:text-indigo-400">
+                        {event.isPaid ? `₹${Number(event.price || 0).toLocaleString()}` : "FREE"}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Content Area */}
+                  <div className="px-4 py-5 flex flex-col flex-1">
+                    <div className="mb-3">
+                      <p className="text-[10px] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-widest mb-1">
+                        {event.categoryId?.name}
+                      </p>
+                      <h3 className="text-lg font-black text-gray-900 dark:text-white leading-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-2">
+                        {event.title}
+                      </h3>
+                    </div>
+
+                    <div className="mt-auto flex items-center justify-between pt-4 border-t border-gray-50 dark:border-gray-800">
+                      <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                        <svg className="w-3.5 h-3.5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        </svg>
+                        <span className="text-[10px] font-bold truncate max-w-[100px]">{event.city || "Online"}</span>
+                      </div>
+                      <div className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">
+                        {new Date(event.startDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="py-10">
         <div className="max-w-7xl mx-auto px-4">

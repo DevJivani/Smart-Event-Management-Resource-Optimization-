@@ -48,6 +48,15 @@ const OrganizerDashboard = () => {
         fetchEvents();
     }, [user?._id]);
 
+    useEffect(() => {
+        if (!user?.upiId && events.some(e => e.isPaid)) {
+            toast.error("You have paid events but haven't set your UPI ID. Users won't be able to book these events until you set it in your profile.", {
+                duration: 6000,
+                icon: "⚠️"
+            });
+        }
+    }, [user?.upiId, events]);
+
     // notifications are not used in the new layout
 
     // Handle edit event
@@ -253,111 +262,120 @@ const OrganizerDashboard = () => {
 
                     <section>
                         {loading ? (
-                                <div className="flex justify-center items-center h-64">
-                                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 dark:border-purple-400 transition-colors duration-300"></div>
-                                </div>
-                            ) : filteredEvents.length === 0 ? (
-                                <div className="text-center py-12 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm transition-colors duration-300">
-                                    <svg
-                                        className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-600"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke="currentColor"
-                                    >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M12 8v4m0 4v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                                        />
-                                    </svg>
-                                    <h3 className="mt-2 text-lg font-medium text-gray-900 dark:text-white">
-                                        No matching events
-                                    </h3>
-                                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                                        Adjust filters or create a new event.
-                                    </p>
+                            <div className="flex justify-center items-center h-64">
+                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 dark:border-purple-400 transition-colors duration-300"></div>
+                            </div>
+                        ) : filteredEvents.length === 0 ? (
+                            <div className="text-center py-12 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm transition-colors duration-300">
+                                <svg
+                                    className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-600"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M12 8v4m0 4v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                    />
+                                </svg>
+                                <h3 className="mt-2 text-lg font-medium text-gray-900 dark:text-white">
+                                    No matching events
+                                </h3>
+                                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                                    Adjust filters or create a new event.
+                                </p>
                                 <button
                                     onClick={() => navigate("/organizer/events/create")}
-                                        className="mt-6 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 transition-colors"
+                                    className="mt-6 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 transition-colors"
+                                >
+                                    Create Event
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
+                                {filteredEvents.map((ev) => (
+                                    <div
+                                        key={ev._id}
+                                        className="group bg-white dark:bg-gray-900 rounded-3xl shadow-lg hover:shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col transition-all duration-500 transform hover:-translate-y-2"
                                     >
-                                        Create Event
-                                    </button>
-                                </div>
-                            ) : (
-                                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
-                                    {filteredEvents.map((ev) => (
-                                        <div 
-                                            key={ev._id} 
-                                            className="group bg-white dark:bg-gray-900 rounded-3xl shadow-lg hover:shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col transition-all duration-500 transform hover:-translate-y-2"
-                                        >
-                                            <div className="relative w-full h-48 overflow-hidden">
-                                                {ev.bannerImage ? (
-                                                    <img src={ev.bannerImage} alt={ev.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out" />
-                                                ) : (
-                                                    <div className="w-full h-full bg-gradient-to-br from-indigo-200 to-purple-200 dark:from-indigo-900/30 dark:to-purple-900/30" />
-                                                )}
-                                                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-all duration-500"></div>
-                                                <div className="absolute top-4 right-4">
-                                                    <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full capitalize ${getStatusBadgeColor(ev.effectiveStatus || ev.status)}`}>
-                                                        {ev.effectiveStatus || ev.status}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <div className="p-6 flex-1 flex flex-col">
-                                                <div className="flex-1">
-                                                    <div className="flex items-start justify-between gap-2 mb-3">
-                                                        <h3 className="text-xl font-bold text-gray-900 dark:text-white line-clamp-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                                                            {ev.title}
-                                                        </h3>
-                                                        <AverageRatingBadge eventId={ev._id} />
-                                                    </div>
-                                                    <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 break-words">
-                                                        {ev.description || "No description provided for this event."}
-                                                    </p>
-                                                </div>
-                                                <div className="mt-6 grid grid-cols-2 gap-4 text-center text-sm border-t border-gray-100 dark:border-gray-800 pt-6">
-                                                    <div>
-                                                        <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Price</p>
-                                                        <p className="font-bold text-lg text-gray-900 dark:text-white mt-1">{ev.isPaid ? `₹${Number(ev.price ?? 0).toFixed(2)}` : "Free"}</p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Attendees</p>
-                                                        <p className="font-bold text-lg text-gray-900 dark:text-white mt-1">{ev.totalSeats - ev.availableSeats} / {ev.totalSeats}</p>
-                                                    </div>
-                                                </div>
-                                                <div className="mt-6 flex items-center gap-3">
-                                                    <button
-                                                        onClick={() => handleEditEvent(ev)}
-                                                        className="flex-1 px-4 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-bold hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-xs flex items-center justify-center gap-2"
-                                                    >
-                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L16.732 3.732z" /></svg>
-                                                        Edit
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDeleteEvent(ev._id)}
-                                                        className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-bold hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors text-xs"
-                                                    >
-                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                                    </button>
-                                                    <Link
-                                                        to={`/organizer/events/${ev._id}`}
-                                                        className="flex-1 px-4 py-3 text-center rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition-colors text-xs flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20"
-                                                    >
-                                                        View Details
-                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-                                                    </Link>
-                                                </div>
+                                        <div className="relative w-full h-48 overflow-hidden">
+                                            {ev.bannerImage ? (
+                                                <img src={ev.bannerImage} alt={ev.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out" />
+                                            ) : (
+                                                <div className="w-full h-full bg-gradient-to-br from-indigo-200 to-purple-200 dark:from-indigo-900/30 dark:to-purple-900/30" />
+                                            )}
+                                            <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-all duration-500"></div>
+                                            <div className="absolute top-4 right-4">
+                                                <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full capitalize ${getStatusBadgeColor(ev.effectiveStatus || ev.status)}`}>
+                                                    {ev.effectiveStatus || ev.status}
+                                                </span>
                                             </div>
                                         </div>
-                                    ))}
-                                </div>
-                            )}
-                        </section>
-                    </div>
+                                        <div className="p-6 flex-1 flex flex-col">
+                                            <div className="flex-1">
+                                                <div className="flex items-start justify-between gap-2 mb-3">
+                                                    <h3 className="text-xl font-bold text-gray-900 dark:text-white line-clamp-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                                                        {ev.title}
+                                                    </h3>
+                                                    <AverageRatingBadge eventId={ev._id} />
+                                                </div>
+                                                <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 break-words">
+                                                    {ev.description || "No description provided for this event."}
+                                                </p>
+                                            </div>
+                                            <div className="mt-6 grid grid-cols-2 gap-4 text-center text-sm border-t border-gray-100 dark:border-gray-800 pt-6">
+                                                <div>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Price</p>
+                                                    <p className="font-bold text-lg text-gray-900 dark:text-white mt-1">{ev.isPaid ? `₹${Number(ev.price ?? 0).toFixed(2)}` : "Free"}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Attendees</p>
+                                                    <p className="font-bold text-lg text-gray-900 dark:text-white mt-1">{ev.totalSeats - ev.availableSeats} / {ev.totalSeats}</p>
+                                                </div>
+                                            </div>
+                                            <div className="mt-6 flex flex-wrap items-center gap-3">
+                                                <button
+                                                    onClick={() => handleEditEvent(ev)}
+                                                    className="flex-1 min-w-[80px] px-4 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-bold hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-xs flex items-center justify-center gap-2"
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L16.732 3.732z" /></svg>
+                                                    Edit
+                                                </button>
+                                                <Link
+                                                    to={`/memory-box/${ev._id}`}
+                                                    className="flex-1 min-w-[120px] px-4 py-3 rounded-xl bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 font-bold hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors text-xs flex items-center justify-center gap-2"
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                                    Memory Box
+                                                </Link>
+                                                <button
+                                                    onClick={() => handleDeleteEvent(ev._id)}
+                                                    className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-bold hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors text-xs"
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                </button>
+                                            </div>
+                                            <div className="mt-3">
+                                                <Link
+                                                    to={`/organizer/events/${ev._id}`}
+                                                    className="w-full px-4 py-3 text-center rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition-colors text-xs flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20"
+                                                >
+                                                    View Full Details
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                                                </Link>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </section>
+                </div>
 
-                    {/* Features Section */}
-                    <section className="py-20 bg-white dark:bg-gray-950 transition-colors duration-300 mt-12 border-t dark:border-gray-900">
+                {/* Features Section */}
+                <section className="py-20 bg-white dark:bg-gray-950 transition-colors duration-300 mt-12 border-t dark:border-gray-900">
                     <div className="max-w-7xl mx-auto px-4">
                         <div className="text-center mb-16">
                             <h2 className="text-3xl sm:text-4xl font-bold text-gray-800 dark:text-white mb-4">

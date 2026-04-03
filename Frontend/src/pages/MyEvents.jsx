@@ -58,8 +58,9 @@ const MyEvents = () => {
               {bookings.map((b) => {
                 const evt = b.eventId || {};
                 const unitPrice = b.ticketId?.price ?? evt.price ?? 0;
+                const isCompleted = evt.startDate && new Date(evt.startDate) < new Date();
                 return (
-                  <div key={b._id} className="bg-white rounded-xl shadow overflow-hidden">
+                  <div key={b._id} className="bg-white rounded-xl shadow overflow-hidden flex flex-col h-full">
                     <div className="w-full h-40">
                       {evt.bannerImage ? (
                         <img src={evt.bannerImage} alt={evt.title} className="w-full h-full object-cover" />
@@ -67,8 +68,13 @@ const MyEvents = () => {
                         <div className="w-full h-full bg-gray-100" />
                       )}
                     </div>
-                    <div className="p-6">
-                      <h3 className="text-lg font-semibold text-gray-900">{evt.title}</h3>
+                    <div className="p-6 flex-1 flex flex-col">
+                      <div className="flex justify-between items-start">
+                        <h3 className="text-lg font-semibold text-gray-900">{evt.title}</h3>
+                        {isCompleted && (
+                          <span className="px-2 py-1 bg-green-100 text-green-700 text-[10px] font-bold uppercase rounded">Completed</span>
+                        )}
+                      </div>
                       <p className="text-sm text-gray-600 mt-1">
                         {evt.venue}
                         {evt.city ? `, ${evt.city}` : ""}
@@ -98,47 +104,35 @@ const MyEvents = () => {
                         </div>
                         <div>
                           <p className="text-gray-500">Total</p>
-                          <p className="font-medium">₹{formatPrice(b.totalAmount)}</p>
+                          <p className="font-bold text-blue-600">₹{formatPrice(b.totalAmount)}</p>
                         </div>
                       </div>
-                      <div className="mt-4 flex items-center justify-between">
-                        <span
-                          className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                            b.paymentStatus === "paid"
-                              ? "bg-emerald-100 text-emerald-800"
-                              : "bg-yellow-100 text-yellow-800"
-                          }`}
-                        >
-                          {b.paymentStatus}
-                        </span>
+                      <div className="mt-6 pt-6 border-t border-gray-100 grid grid-cols-2 gap-3 mt-auto">
                         <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const url = `${axiosInstance.defaults.baseURL}/api/v1/booking/${b._id}/invoice`;
-                            window.open(url, "_blank");
-                          }}
-                          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black rounded-xl shadow-lg shadow-indigo-600/20 transition-all transform hover:-translate-y-0.5 active:translate-y-0"
+                          onClick={() => setSelectedTicket(b)}
+                          className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
                         >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                          Invoice
+                          View Ticket
                         </button>
-
-                        {b.paymentStatus === "paid" && (
+                        {isCompleted ? (
                           <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedTicket(b);
-                            }}
-                            className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-black rounded-xl shadow-lg shadow-purple-600/20 transition-all transform hover:-translate-y-0.5 active:translate-y-0"
+                            onClick={() => navigate(`/memory-box/${evt._id}`)}
+                            className="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg text-sm font-medium hover:bg-purple-200 transition-colors flex items-center justify-center gap-1"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
-                            Ticket
+                            Memory Box
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              const url = `${axiosInstance.defaults.baseURL}/api/v1/booking/${b._id}/invoice`;
+                              window.open(url, "_blank");
+                            }}
+                            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+                          >
+                            Invoice
                           </button>
                         )}
                       </div>

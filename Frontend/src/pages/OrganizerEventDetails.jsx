@@ -142,14 +142,22 @@ export default function OrganizerEventDetails() {
                   </div>
                 </div>
                 
-                <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl p-6 text-white shadow-xl">
+                <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl p-6 text-white shadow-xl space-y-3">
                   <h4 className="font-bold mb-2">Organizer Dashboard</h4>
                   <p className="text-indigo-100 text-xs leading-relaxed mb-4">You are viewing this as an organizer. Use the dashboard to manage bookings and updates.</p>
                   <button 
                     onClick={() => navigate(`/organizer/events/${eventId}/edit`)}
-                    className="w-full py-2.5 bg-white text-indigo-600 rounded-xl text-xs font-bold transition-all shadow-lg hover:shadow-indigo-500/40 transform hover:-translate-y-0.5"
+                    className="w-full py-2.5 bg-white text-indigo-600 rounded-xl text-xs font-bold transition-all shadow-lg hover:shadow-indigo-500/40 transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
                   >
-                    Manage Event
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L16.732 3.732z" /></svg>
+                    Edit Event
+                  </button>
+                  <button 
+                    onClick={() => navigate(`/memory-box/${eventId}`)}
+                    className="w-full py-2.5 bg-indigo-500/30 backdrop-blur-md text-white border border-white/20 rounded-xl text-xs font-bold transition-all hover:bg-indigo-500/50 flex items-center justify-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    Memory Box & Gallery
                   </button>
                 </div>
               </div>

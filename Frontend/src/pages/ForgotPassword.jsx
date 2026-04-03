@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import axios from "axios";
+import axiosInstance from "../utils/axios";
 import { toast } from "react-hot-toast";
 import { useNavigate, Link } from "react-router-dom";
 
@@ -31,10 +31,9 @@ const ForgotPassword = () => {
 
     try {
       setLoading(true);
-      const res = await axios.post(
-        "http://localhost:3000/api/v1/user/forgot-password",
-        { email },
-        { withCredentials: true }
+      const res = await axiosInstance.post(
+        "/api/v1/user/forgot-password",
+        { email }
       );
 
       if (res.data.success) {
@@ -64,10 +63,9 @@ const ForgotPassword = () => {
 
     try {
       setLoading(true);
-      const res = await axios.post(
-        "http://localhost:3000/api/v1/user/verify-otp",
-        { email, otp },
-        { withCredentials: true }
+      const res = await axiosInstance.post(
+        "/api/v1/user/verify-otp",
+        { email, otp }
       );
 
       if (res.data.success) {
@@ -108,10 +106,9 @@ const ForgotPassword = () => {
 
     try {
       setLoading(true);
-      const res = await axios.post(
-        "http://localhost:3000/api/v1/user/reset-password",
-        { email, otp, newPassword },
-        { withCredentials: true }
+      const res = await axiosInstance.post(
+        "/api/v1/user/reset-password",
+        { email, otp, newPassword }
       );
 
       if (res.data.success) {
