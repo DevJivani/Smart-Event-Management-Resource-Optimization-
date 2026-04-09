@@ -35,6 +35,7 @@ import Settings from './pages/Settings'
 import PublicProfile from './pages/PublicProfile'
 import OrganizerScanner from './pages/OrganizerScanner'
 import MemoryBox from './pages/MemoryBox'
+import LoginSuccess from './pages/LoginSuccess'
 
 const router = createBrowserRouter([
   {
@@ -44,6 +45,10 @@ const router = createBrowserRouter([
   {
     path: '/login',
     element: <Login />
+  },
+  {
+    path: '/login-success',
+    element: <LoginSuccess />
   },
   {
     path: '/register',

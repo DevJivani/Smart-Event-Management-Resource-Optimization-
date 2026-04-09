@@ -1,6 +1,9 @@
 import express from 'express';
 import cors from "cors";
 import cookieparser from "cookie-parser";
+import session from "express-session";
+import passport from "passport";
+import initializePassport from "./utils/passport.js";
 import userRouter from "./Routes/user.route.js";
 import eventRouter from "./Routes/event.route.js";
 import bookingRouter from "./Routes/booking.route.js";
@@ -33,6 +36,23 @@ app.use(express.static("public"));
 
 // Allow server to read and modify cookies stored in the user's browser
 app.use(cookieparser());
+
+// Configure express session
+app.use(session({
+    secret: process.env.SESSION_SECRET || "something-secret",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        secure: process.env.NODE_ENV === "production",
+        httpOnly: true,
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
+}));
+
+// Initialize Passport and use sessions
+initializePassport();
+app.use(passport.initialize());
+app.use(passport.session());
 
 // User-related routes
 app.use("/api/v1/user", userRouter);

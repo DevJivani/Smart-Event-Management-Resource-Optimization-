@@ -413,6 +413,34 @@ const Register = () => {
                 </>
               )}
             </button>
+
+            {/* Google SSO Button */}
+            <div className="mt-4">
+              <a
+                href="http://localhost:3000/api/v1/user/auth/google"
+                className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 font-semibold rounded-xl shadow-sm hover:shadow-md hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200"
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24">
+                  <path
+                    fill="#EA4335"
+                    d="M5.266 9.765A7.077 7.077 0 0 1 12 4.909c1.69 0 3.218.6 4.418 1.582L19.91 3C17.782 1.145 15.055 0 12 0 7.273 0 3.191 2.727 1.245 6.691l4.021 3.074z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M16.04 18.013c-1.09.593-2.325.896-3.618.896-2.496 0-4.59-1.615-5.334-3.834L3.03 18.15c1.928 3.841 5.891 6.445 10.47 6.445 2.902 0 5.564-1.04 7.618-2.768l-5.078-3.814z"
+                  />
+                  <path
+                    fill="#4285F4"
+                    d="M22.545 12.273c0-.83-.075-1.636-.211-2.414H12v4.575h5.92c-.254 1.378-1.032 2.541-2.2 3.32l5.078 3.814c2.972-2.736 4.685-6.768 4.685-11.5c0-.604-.047-1.196-.138-1.795z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M7.088 15.075A7.07 7.07 0 0 1 6.545 12c0-1.09.255-2.12.709-3.034L3.233 5.892C2.182 7.636 1.545 9.718 1.545 12c0 2.282.637 4.364 1.688 6.109l3.855-3.034z"
+                  />
+                </svg>
+                <span>Continue with Google</span>
+              </a>
+            </div>
           </form>
 
           {/* Divider */}

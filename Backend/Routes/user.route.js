@@ -1,9 +1,24 @@
 import {Router} from "express";
-import { userLogin, userLogout, userRegisteration, updateProfile, changePassword, uploadProfileImage, forgotPassword, verifyOtp, resetPassword, deleteAccount, updateSettings, verify2FA, getPublicProfile, getAllUsers, getAllOrganizers, toggleUserStatus, contactUs } from "../controllers/user.controller.js";
+import passport from "passport";
+import { userLogin, userLogout, userRegisteration, updateProfile, changePassword, uploadProfileImage, forgotPassword, verifyOtp, resetPassword, deleteAccount, updateSettings, verify2FA, getPublicProfile, getAllUsers, getAllOrganizers, toggleUserStatus, contactUs, googleAuthCallback } from "../controllers/user.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import { verifyJwt, isAdmin } from "../middlewares/auth.middleware.js";
 
 const router = Router();
+
+// Google SSO routes
+router.get("/auth/google", passport.authenticate("google", { scope: ["profile", "email"] }));
+router.get("/auth/google/callback", 
+  passport.authenticate("google", { failureRedirect: "/login", session: false }),
+  googleAuthCallback
+);
+
+router.route("/me").get(verifyJwt, (req, res) => {
+    return res.status(200).json({
+        success: true,
+        user: req.user
+    });
+});
 
 router.route("/register").post(upload.single("profileImage"), userRegisteration);
 router.route("/login").post(userLogin)

@@ -285,6 +285,32 @@ export const userLogout = async (req, res) => {
     }
 }
 
+// Google SSO Callback
+export const googleAuthCallback = async (req, res) => {
+    try {
+        const user = req.user;
+        if (!user) {
+            return res.redirect(`${process.env.FRONTEND_URL || "http://localhost:5173"}/login?error=auth_failed`);
+        }
+
+        const accessToken = await createAccessToken(user._id);
+        const options = {
+            httpOnly: true,
+            secure: false // Set to true in production with HTTPS
+        };
+
+        // For SSO, we need to set the cookie and redirect to frontend
+        // The frontend will then call an endpoint to get the user info or it will already be in the cookie
+        res.cookie("accessToken", accessToken, options);
+        
+        // Redirect back to frontend - we could pass some info in URL or just rely on cookie
+        return res.redirect(`${process.env.FRONTEND_URL || "http://localhost:5173"}/login-success`);
+    } catch (error) {
+        console.error("SSO Callback Error:", error);
+        return res.redirect(`${process.env.FRONTEND_URL || "http://localhost:5173"}/login?error=server_error`);
+    }
+};
+
 // Update Profile Controller
 export const updateProfile = async (req, res) => {
     try {
