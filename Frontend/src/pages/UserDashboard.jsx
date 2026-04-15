@@ -151,7 +151,7 @@ const UserDashboard = () => {
         </div>
 
         {/* Filter Bar */}
-        <div className="bg-white dark:bg-gray-900/50 backdrop-blur-md rounded-2xl p-4 mb-8 border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col md:flex-row items-center gap-6">
+        <div className="bg-white dark:bg-gray-900/50 backdrop-blur-md rounded-2xl p-4 mb-8 border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col md:flex-row items-center gap-6 relative z-30">
           
           {/* Status Filter */}
           <div className="flex items-center gap-3 shrink-0">

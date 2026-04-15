@@ -85,11 +85,13 @@ const CreateEventModal = ({ onClose, onSave }) => {
         }
 
         // Client-side date/time validation
-        const today = new Date();
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
         const start = new Date(`${formData.startDate}T${formData.startTime || "00:00"}:00`);
         const end = new Date(`${formData.endDate}T${formData.endTime || "23:59"}:00`);
-        if (start < today) {
-            toast.error("Start date/time cannot be in the past");
+
+        if (start < todayStart) {
+            toast.error("Start date cannot be in the past");
             return;
         }
         if (end < start) {
@@ -104,6 +106,10 @@ const CreateEventModal = ({ onClose, onSave }) => {
             const priceNum = Number(formData.price);
             if (!priceNum || Number.isNaN(priceNum) || priceNum <= 0) {
                 toast.error("Please enter a valid price greater than 0 for paid events");
+                return;
+            }
+            if (!user?.upiId) {
+                toast.error("You must set your UPI ID in your profile to create a paid event.");
                 return;
             }
         }

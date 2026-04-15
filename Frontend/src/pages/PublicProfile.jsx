@@ -10,6 +10,7 @@ const PublicProfile = () => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchPublicProfile = async () => {
@@ -67,9 +68,12 @@ const PublicProfile = () => {
 
         <div className="relative max-w-7xl mx-auto px-4 py-16 sm:py-24">
           <div className="flex flex-col md:flex-row items-center gap-8 text-white">
-            <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-full border-4 border-white/20 overflow-hidden shadow-2xl bg-white/10 flex items-center justify-center text-5xl font-bold backdrop-blur-sm">
+            <div 
+              onClick={() => profile.profileImage && setIsImageModalOpen(true)}
+              className={`w-32 h-32 sm:w-40 sm:h-40 rounded-full border-4 border-white/20 overflow-hidden shadow-2xl bg-white/10 flex items-center justify-center text-5xl font-bold backdrop-blur-sm ${profile.profileImage ? 'cursor-zoom-in group' : ''}`}
+            >
               {profile.profileImage ? (
-                <img src={profile.profileImage} alt={profile.name} className="w-full h-full object-cover" />
+                <img src={profile.profileImage} alt={profile.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
               ) : (
                 profile.name?.charAt(0).toUpperCase()
               )}
@@ -280,6 +284,38 @@ const PublicProfile = () => {
           </div>
         )}
       </main>
+
+      {/* Image Preview Modal */}
+      {isImageModalOpen && profile.profileImage && (
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm animate-in fade-in duration-300 p-4"
+          onClick={() => setIsImageModalOpen(false)}
+        >
+          <button 
+            className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors z-[110]"
+            onClick={(e) => { e.stopPropagation(); setIsImageModalOpen(false); }}
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          
+          <div 
+            className="relative max-w-4xl w-full max-h-[90vh] flex items-center justify-center animate-in zoom-in-95 duration-300"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img 
+              src={profile.profileImage} 
+              alt="Profile Full View" 
+              className="max-w-full max-h-[90vh] object-contain rounded-2xl shadow-2xl border border-white/10"
+            />
+            
+            <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 text-white/60 text-sm font-medium">
+              Click anywhere outside to close
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

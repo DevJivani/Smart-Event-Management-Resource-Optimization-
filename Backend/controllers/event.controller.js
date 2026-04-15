@@ -91,16 +91,39 @@ export const getRecommendedEvents = async (req, res) => {
             // 1. Get user's manually selected interests
             const user = await User.findById(userId);
             if (user?.interests?.length > 0) {
-                recommendedCategories = [...user.interests];
+                recommendedCategories = user.interests.map(id => String(id));
             }
 
-            // 2. Get categories from user's booking history
-            const userBookings = await Booking.find({ userId }).populate("eventId");
+            // 2. Get categories from user's booking history (excluding cancelled bookings)
+            const userBookings = await Booking.find({ 
+                userId, 
+                bookingStatus: { $ne: "cancelled" } 
+            }).populate("eventId");
             const historyCategories = userBookings
                 .map(b => b.eventId?.categoryId)
-                .filter(id => id != null);
+                .filter(id => id != null)
+                .map(id => String(id));
             
+            // Deduplicate categories from both interests and history
             recommendedCategories = [...new Set([...recommendedCategories, ...historyCategories])];
+            
+            // If user is logged in but has no interests and no booking history,
+            // we return empty list so the recommended section doesn't show up.
+            if (recommendedCategories.length === 0) {
+                return res.status(200).json({
+                    success: true,
+                    events: []
+                });
+            }
+        } else {
+            // For non-logged-in users, we might not want to show recommendations at all
+            // or we could show popular events. Based on user request, they care about
+            // the "new user login" case. Let's return empty for guests too to be safe,
+            // or just skip personalization.
+            return res.status(200).json({
+                success: true,
+                events: []
+            });
         }
 
         const query = {
@@ -125,21 +148,9 @@ export const getRecommendedEvents = async (req, res) => {
             .sort({ startDate: 1 })
             .limit(10);
 
-        // If not enough personalized recommendations, fill with popular/latest events
-        if (events.length < 4) {
-            const extraEvents = await Event.find({
-                isApproved: true,
-                isDisabled: false,
-                startDate: { $gte: new Date() },
-                _id: { $nin: [...(events.map(e => e._id)), ...(userId ? await Booking.find({ userId }).distinct("eventId") : [])] }
-            })
-            .populate("categoryId", "name")
-            .populate("createdBy", "name email")
-            .sort({ createdAt: -1 })
-            .limit(10 - events.length);
-            
-            events = [...events, ...extraEvents];
-        }
+        // We don't want to fill with "extraEvents" because that would show
+        // non-personalized events in the "Recommended for You" section.
+        // The user wants it to be based ONLY on bookings and interests.
 
         return res.status(200).json({
             success: true,
@@ -415,9 +426,15 @@ export const createEvent = async (req, res) => {
             const start = buildDateTime(startDate, startTime, false);
             const end = buildDateTime(endDate, endTime, true);
             const now = new Date();
-            if (start < now) {
+            
+            // Allow events starting today even if start time is technically in the past 
+            // but on the same day (to avoid issues with users not specifying time or small delays)
+            const todayStart = new Date();
+            todayStart.setHours(0, 0, 0, 0);
+
+            if (start < todayStart) {
                 return res.status(400).json({
-                    message: "Start date/time cannot be in the past",
+                    message: "Start date cannot be in the past",
                     success: false
                 });
             }
@@ -549,10 +566,15 @@ export const updateEvent = async (req, res) => {
             try {
                 const start = buildDateTime(nextStartDate, nextStartTime, false);
                 const end = buildDateTime(nextEndDate, nextEndTime, true);
-                const now = new Date();
-                if (start < now) {
+                
+                // Allow events starting today even if start time is technically in the past 
+                // but on the same day (to avoid issues with users not specifying time or small delays)
+                const todayStart = new Date();
+                todayStart.setHours(0, 0, 0, 0);
+
+                if (start < todayStart) {
                     return res.status(400).json({
-                        message: "Start date/time cannot be in the past",
+                        message: "Start date cannot be in the past",
                         success: false
                     });
                 }

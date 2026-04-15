@@ -34,6 +34,9 @@ export async function uploadToCloudinary(filePath, { folder } = {}) {
     const result = await cloudinary.uploader.upload(filePath, {
       folder: folder || "eventhub",
       resource_type: "image",
+      // If the file is HEIC or HEIF, convert it to JPEG to ensure browser compatibility
+      // Otherwise, keep original but allow optimization
+      format: (filePath.toLowerCase().endsWith('.heic') || filePath.toLowerCase().endsWith('.heif')) ? 'jpg' : undefined,
     });
 
     return result;

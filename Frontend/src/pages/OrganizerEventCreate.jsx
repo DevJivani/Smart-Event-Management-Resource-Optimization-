@@ -256,33 +256,37 @@ export default function OrganizerEventCreate() {
                   </div>
                 </div>
 
-                <div className="grid sm:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-2 ml-1">Total Capacity</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={form.totalSeats}
-                      onChange={(e) => setForm((f) => ({ ...f, totalSeats: e.target.value }))}
-                      className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 transition-all"
-                      placeholder="Number of available tickets"
-                    />
-                    {errors.totalSeats && <p className="mt-2 text-xs font-medium text-red-500">{errors.totalSeats}</p>}
+                  <div className="grid sm:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-2 ml-1">Total Capacity</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={form.totalSeats}
+                        onChange={(e) => setForm((f) => ({ ...f, totalSeats: e.target.value }))}
+                        className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 transition-all"
+                        placeholder="Number of available tickets"
+                      />
+                      {errors.totalSeats && <p className="mt-2 text-xs font-medium text-red-500">{errors.totalSeats}</p>}
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-2 ml-1">Ticket Price (₹)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={form.price}
+                        onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
+                        className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        placeholder="0"
+                        disabled={!form.isPaid}
+                      />
+                      {errors.price && <p className="mt-2 text-xs font-medium text-red-500">{errors.price}</p>}
+                      {errors.upiId && <p className="mt-2 text-xs font-medium text-red-500 flex items-center gap-1">
+                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+                        {errors.upiId}
+                      </p>}
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-2 ml-1">Ticket Price (₹)</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={form.price}
-                      onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
-                      className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                      placeholder="0"
-                      disabled={!form.isPaid}
-                    />
-                    {errors.price && <p className="mt-2 text-xs font-medium text-red-500">{errors.price}</p>}
-                  </div>
-                </div>
 
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2 pt-4">
                   <span className="w-8 h-8 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-lg flex items-center justify-center text-sm">4</span>
@@ -324,7 +328,7 @@ export default function OrganizerEventCreate() {
                   <button
                     className="flex-[2] px-6 py-4 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 disabled:opacity-50 transition-all transform hover:-translate-y-0.5 active:scale-95"
                     onClick={submit}
-                    disabled={saving || !isValid}
+                    disabled={saving}
                   >
                     {saving ? (
                       <span className="flex items-center justify-center gap-2">
