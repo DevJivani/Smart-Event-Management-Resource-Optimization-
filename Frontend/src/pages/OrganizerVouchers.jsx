@@ -239,7 +239,7 @@ const OrganizerVouchers = () => {
                           <div className="flex flex-col gap-1">
                             <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{voucher.eventIds.length} Events</span>
                             <span className="text-[10px] text-gray-400 truncate max-w-[150px]">
-                              {voucher.eventIds.map(e => e.title).join(", ")}
+                              {voucher.eventIds.map(e => e?.title).filter(Boolean).join(", ")}
                             </span>
                           </div>
                         ) : (
@@ -411,11 +411,12 @@ const OrganizerVouchers = () => {
                           <input
                             type="checkbox"
                             className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                            checked={formData.eventIds.includes(event._id)}
+                            checked={formData.eventIds?.includes(event._id) || false}
                             onChange={(e) => {
+                              const currentIds = formData.eventIds || [];
                               const newEventIds = e.target.checked
-                                ? [...formData.eventIds, event._id]
-                                : formData.eventIds.filter(id => id !== event._id);
+                                ? [...currentIds, event._id]
+                                : currentIds.filter(id => id !== event._id);
                               setFormData({ ...formData, eventIds: newEventIds });
                             }}
                           />

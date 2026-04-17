@@ -150,7 +150,7 @@ function Home() {
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link 
-                to="/events" 
+                to="/dashboard" 
                 className="px-10 py-4 bg-purple-600 hover:bg-purple-700 text-white rounded-2xl font-black shadow-2xl shadow-purple-500/40 transform hover:-translate-y-1 transition-all duration-300"
               >
                 Explore All Events
